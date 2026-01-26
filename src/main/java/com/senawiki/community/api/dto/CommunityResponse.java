@@ -10,6 +10,7 @@ public class CommunityResponse {
     private String authorType;
     private String authorName;
     private long viewCount;
+    private boolean notice;
     private String fileOriginalName;
     private String fileDownloadUrl;
     private String fileContentType;
@@ -63,6 +64,14 @@ public class CommunityResponse {
 
     public void setViewCount(long viewCount) {
         this.viewCount = viewCount;
+    }
+
+    public boolean isNotice() {
+        return notice;
+    }
+
+    public void setNotice(boolean notice) {
+        this.notice = notice;
     }
 
     public String getFileOriginalName() {

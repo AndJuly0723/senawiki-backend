@@ -7,10 +7,15 @@ import com.senawiki.community.api.dto.CommunityUpdateRequest;
 import com.senawiki.community.domain.AuthorType;
 import com.senawiki.community.domain.CommunityPost;
 import com.senawiki.community.domain.CommunityPostRepository;
+import com.senawiki.user.domain.User;
+import com.senawiki.user.domain.UserRepository;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional
@@ -26,27 +32,36 @@ public class CommunityPostService {
     private final CommunityPostRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
+    private final UserRepository userRepository;
 
     public CommunityPostService(
         CommunityPostRepository repository,
         PasswordEncoder passwordEncoder,
-        FileStorageService fileStorageService
+        FileStorageService fileStorageService,
+        UserRepository userRepository
     ) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
+        this.userRepository = userRepository;
     }
 
     public CommunityResponse create(CommunityCreateRequest request, MultipartFile file) {
+        if (request.isNotice() && !isAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can create notices");
+        }
+
         CommunityPost post = new CommunityPost();
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
+        post.setNotice(request.isNotice());
 
         Optional<String> memberUsername = resolveMemberUsername();
         if (memberUsername.isPresent()) {
             post.setAuthorType(AuthorType.MEMBER);
-            post.setAuthorName(memberUsername.get());
-            post.setMemberUsername(memberUsername.get());
+            String email = memberUsername.get();
+            post.setMemberUsername(email);
+            post.setAuthorName(resolveMemberDisplayName(email));
         } else {
             requireGuestCredentials(request.getGuestName(), request.getGuestPassword());
             post.setAuthorType(AuthorType.GUEST);
@@ -72,11 +87,19 @@ public class CommunityPostService {
 
     @Transactional(readOnly = true)
     public Page<CommunitySummaryResponse> list(Pageable pageable) {
-        return repository.findAll(pageable).map(this::toSummary);
+        Pageable sorted = PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            Sort.by(Sort.Order.desc("notice"), Sort.Order.desc("createdAt"))
+        );
+        return repository.findAll(sorted).map(this::toSummary);
     }
 
     public CommunityResponse update(Long id, CommunityUpdateRequest request, MultipartFile file) {
         CommunityPost post = getPost(id);
+        if (post.isNotice() && !isAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can modify notices");
+        }
         validateAuthor(post, request.getGuestName(), request.getGuestPassword());
 
         post.setTitle(request.getTitle());
@@ -87,7 +110,12 @@ public class CommunityPostService {
 
     public void delete(Long id, String guestName, String guestPassword) {
         CommunityPost post = getPost(id);
-        validateAuthor(post, guestName, guestPassword);
+        if (post.isNotice() && !isAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can delete notices");
+        }
+        if (!isAdmin()) {
+            validateAuthor(post, guestName, guestPassword);
+        }
         removeFileIfExists(post);
         repository.delete(post);
     }
@@ -138,6 +166,30 @@ public class CommunityPostService {
         return Optional.ofNullable(authentication.getName());
     }
 
+    private String resolveMemberDisplayName(String email) {
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isPresent()) {
+            String nickname = user.get().getNickname();
+            if (nickname != null && !nickname.isBlank()) {
+                return nickname;
+            }
+            String name = user.get().getName();
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
+        }
+        return email;
+    }
+
+    private boolean isAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
     private void attachFile(CommunityPost post, MultipartFile file) {
         FileStorageResult result = fileStorageService.store(file);
         if (result == null) {
@@ -169,6 +221,7 @@ public class CommunityPostService {
         response.setAuthorType(post.getAuthorType().name());
         response.setAuthorName(post.getAuthorName());
         response.setViewCount(post.getViewCount());
+        response.setNotice(post.isNotice());
         response.setFileOriginalName(post.getFileOriginalName());
         if (post.getFileStoragePath() != null) {
             response.setFileDownloadUrl("/api/community/" + post.getId() + "/file");
@@ -187,6 +240,7 @@ public class CommunityPostService {
         response.setAuthorType(post.getAuthorType().name());
         response.setAuthorName(post.getAuthorName());
         response.setViewCount(post.getViewCount());
+        response.setNotice(post.isNotice());
         response.setCreatedAt(post.getCreatedAt());
         return response;
     }

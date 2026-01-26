@@ -42,6 +42,9 @@ public class CommunityPost {
     @Column(nullable = false)
     private long viewCount;
 
+    @Column(nullable = false)
+    private boolean notice;
+
     @Column(length = 300)
     private String fileOriginalName;
 
@@ -129,6 +132,14 @@ public class CommunityPost {
 
     public void setViewCount(long viewCount) {
         this.viewCount = viewCount;
+    }
+
+    public boolean isNotice() {
+        return notice;
+    }
+
+    public void setNotice(boolean notice) {
+        this.notice = notice;
     }
 
     public String getFileOriginalName() {

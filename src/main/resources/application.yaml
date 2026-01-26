@@ -18,3 +18,16 @@ app:
     bucket: your-bucket-name
     region: ap-northeast-2
     prefix: community
+  ses:
+    region: ap-northeast-2
+    from: no-reply@example.com
+  jwt:
+    secret: "/e4sXkv8mxrKyRv8QqvQd0SFDay0y0JQjR/QJ2iSMh0rx4uBXyQO2HGl2esymWqi"
+    access-token-validity-seconds: 900
+    refresh-token-validity-seconds: 604800
+  admin:
+    enabled: false
+    email: "admin@gmail.com"
+    password: "whflrhk0744@$"
+    name: "Leo"
+    nickname: "관리자"

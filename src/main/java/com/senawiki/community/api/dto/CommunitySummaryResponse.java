@@ -9,6 +9,7 @@ public class CommunitySummaryResponse {
     private String authorType;
     private String authorName;
     private long viewCount;
+    private boolean notice;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -49,6 +50,14 @@ public class CommunitySummaryResponse {
 
     public void setViewCount(long viewCount) {
         this.viewCount = viewCount;
+    }
+
+    public boolean isNotice() {
+        return notice;
+    }
+
+    public void setNotice(boolean notice) {
+        this.notice = notice;
     }
 
     public LocalDateTime getCreatedAt() {

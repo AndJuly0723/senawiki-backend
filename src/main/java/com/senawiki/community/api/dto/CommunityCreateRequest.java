@@ -18,6 +18,8 @@ public class CommunityCreateRequest {
     @Size(max = 100)
     private String guestPassword;
 
+    private boolean notice;
+
     public String getTitle() {
         return title;
     }
@@ -48,5 +50,13 @@ public class CommunityCreateRequest {
 
     public void setGuestPassword(String guestPassword) {
         this.guestPassword = guestPassword;
+    }
+
+    public boolean isNotice() {
+        return notice;
+    }
+
+    public void setNotice(boolean notice) {
+        this.notice = notice;
     }
 }
