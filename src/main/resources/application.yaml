@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: senawiki
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: cmwlwhfl219014@
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+app:
+  s3:
+    bucket: your-bucket-name
+    region: ap-northeast-2
+    prefix: community
