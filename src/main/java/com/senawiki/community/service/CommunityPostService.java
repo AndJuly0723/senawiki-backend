@@ -6,12 +6,16 @@ import com.senawiki.community.api.dto.CommunitySummaryResponse;
 import com.senawiki.community.api.dto.CommunityUpdateRequest;
 import com.senawiki.community.domain.AuthorType;
 import com.senawiki.community.domain.BoardType;
+import com.senawiki.community.domain.CommunityCommentRepository;
 import com.senawiki.community.domain.CommunityPost;
 import com.senawiki.community.domain.CommunityPostRepository;
 import com.senawiki.user.domain.User;
 import com.senawiki.user.domain.UserRepository;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,17 +35,20 @@ import org.springframework.web.server.ResponseStatusException;
 public class CommunityPostService {
 
     private final CommunityPostRepository repository;
+    private final CommunityCommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
     private final UserRepository userRepository;
 
     public CommunityPostService(
         CommunityPostRepository repository,
+        CommunityCommentRepository commentRepository,
         PasswordEncoder passwordEncoder,
         FileStorageService fileStorageService,
         UserRepository userRepository
     ) {
         this.repository = repository;
+        this.commentRepository = commentRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
         this.userRepository = userRepository;
@@ -94,7 +101,13 @@ public class CommunityPostService {
             pageable.getPageSize(),
             Sort.by(Sort.Order.desc("notice"), Sort.Order.desc("createdAt"))
         );
-        return repository.findAllByBoardTypeIncludingLegacy(boardType, sorted).map(this::toSummary);
+        Page<CommunityPost> posts = repository.findAllByBoardTypeIncludingLegacy(boardType, sorted);
+        Map<Long, Long> commentCounts = fetchCommentCounts(posts.getContent());
+        return posts.map(post -> {
+            CommunitySummaryResponse response = toSummary(post);
+            response.setCommentCount(commentCounts.getOrDefault(post.getId(), 0L));
+            return response;
+        });
     }
 
     public CommunityResponse update(BoardType boardType, Long id, CommunityUpdateRequest request, MultipartFile file) {
@@ -255,5 +268,19 @@ public class CommunityPostService {
         response.setNotice(post.isNotice());
         response.setCreatedAt(post.getCreatedAt());
         return response;
+    }
+
+    private Map<Long, Long> fetchCommentCounts(List<CommunityPost> posts) {
+        List<Long> postIds = posts.stream()
+            .map(CommunityPost::getId)
+            .toList();
+        if (postIds.isEmpty()) {
+            return Map.of();
+        }
+        return commentRepository.countByPostIds(postIds).stream()
+            .collect(Collectors.toMap(
+                CommunityCommentRepository.PostCommentCount::getPostId,
+                CommunityCommentRepository.PostCommentCount::getCount
+            ));
     }
 }

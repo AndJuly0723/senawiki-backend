@@ -2,16 +2,15 @@ package com.senawiki.community.api.dto;
 
 import java.time.LocalDateTime;
 
-public class CommunitySummaryResponse {
+public class CommentResponse {
 
     private Long id;
-    private String title;
+    private Long postId;
+    private String content;
     private String authorType;
     private String authorName;
-    private long viewCount;
-    private boolean notice;
-    private long commentCount;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public Long getId() {
         return id;
@@ -21,12 +20,20 @@ public class CommunitySummaryResponse {
         this.id = id;
     }
 
-    public String getTitle() {
-        return title;
+    public Long getPostId() {
+        return postId;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setPostId(Long postId) {
+        this.postId = postId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 
     public String getAuthorType() {
@@ -45,35 +52,19 @@ public class CommunitySummaryResponse {
         this.authorName = authorName;
     }
 
-    public long getViewCount() {
-        return viewCount;
-    }
-
-    public void setViewCount(long viewCount) {
-        this.viewCount = viewCount;
-    }
-
-    public boolean isNotice() {
-        return notice;
-    }
-
-    public void setNotice(boolean notice) {
-        this.notice = notice;
-    }
-
-    public long getCommentCount() {
-        return commentCount;
-    }
-
-    public void setCommentCount(long commentCount) {
-        this.commentCount = commentCount;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
