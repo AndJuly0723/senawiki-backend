@@ -30,6 +30,10 @@ public class CommunityPost {
     @Column(nullable = false, length = 20)
     private AuthorType authorType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private BoardType boardType;
+
     @Column(nullable = false, length = 100)
     private String authorName;
 
@@ -100,6 +104,14 @@ public class CommunityPost {
 
     public void setAuthorType(AuthorType authorType) {
         this.authorType = authorType;
+    }
+
+    public BoardType getBoardType() {
+        return boardType;
+    }
+
+    public void setBoardType(BoardType boardType) {
+        this.boardType = boardType;
     }
 
     public String getAuthorName() {

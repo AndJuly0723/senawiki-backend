@@ -5,6 +5,7 @@ import com.senawiki.community.api.dto.CommunityResponse;
 import com.senawiki.community.api.dto.CommunitySummaryResponse;
 import com.senawiki.community.api.dto.CommunityUpdateRequest;
 import com.senawiki.community.domain.AuthorType;
+import com.senawiki.community.domain.BoardType;
 import com.senawiki.community.domain.CommunityPost;
 import com.senawiki.community.domain.CommunityPostRepository;
 import com.senawiki.user.domain.User;
@@ -46,12 +47,13 @@ public class CommunityPostService {
         this.userRepository = userRepository;
     }
 
-    public CommunityResponse create(CommunityCreateRequest request, MultipartFile file) {
+    public CommunityResponse create(BoardType boardType, CommunityCreateRequest request, MultipartFile file) {
         if (request.isNotice() && !isAdmin()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can create notices");
         }
 
         CommunityPost post = new CommunityPost();
+        post.setBoardType(boardType);
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
         post.setNotice(request.isNotice());
@@ -75,41 +77,42 @@ public class CommunityPostService {
     }
 
     @Transactional(readOnly = true)
-    public CommunityResponse get(Long id) {
-        return toResponse(getPost(id));
+    public CommunityResponse get(BoardType boardType, Long id) {
+        return toResponse(getPost(boardType, id));
     }
 
-    public CommunityResponse incrementView(Long id) {
-        CommunityPost post = getPost(id);
+    public CommunityResponse incrementView(BoardType boardType, Long id) {
+        CommunityPost post = getPost(boardType, id);
         post.setViewCount(post.getViewCount() + 1);
         return toResponse(post);
     }
 
     @Transactional(readOnly = true)
-    public Page<CommunitySummaryResponse> list(Pageable pageable) {
+    public Page<CommunitySummaryResponse> list(BoardType boardType, Pageable pageable) {
         Pageable sorted = PageRequest.of(
             pageable.getPageNumber(),
             pageable.getPageSize(),
             Sort.by(Sort.Order.desc("notice"), Sort.Order.desc("createdAt"))
         );
-        return repository.findAll(sorted).map(this::toSummary);
+        return repository.findAllByBoardTypeIncludingLegacy(boardType, sorted).map(this::toSummary);
     }
 
-    public CommunityResponse update(Long id, CommunityUpdateRequest request, MultipartFile file) {
-        CommunityPost post = getPost(id);
+    public CommunityResponse update(BoardType boardType, Long id, CommunityUpdateRequest request, MultipartFile file) {
+        CommunityPost post = getPost(boardType, id);
         if (post.isNotice() && !isAdmin()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can modify notices");
         }
         validateAuthor(post, request.getGuestName(), request.getGuestPassword());
 
+        post.setBoardType(boardType);
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
         attachFile(post, file);
         return toResponse(post);
     }
 
-    public void delete(Long id, String guestName, String guestPassword) {
-        CommunityPost post = getPost(id);
+    public void delete(BoardType boardType, Long id, String guestName, String guestPassword) {
+        CommunityPost post = getPost(boardType, id);
         if (post.isNotice() && !isAdmin()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can delete notices");
         }
@@ -121,8 +124,8 @@ public class CommunityPostService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<FileDownload> loadFile(Long id) {
-        CommunityPost post = getPost(id);
+    public Optional<FileDownload> loadFile(BoardType boardType, Long id) {
+        CommunityPost post = getPost(boardType, id);
         if (post.getFileStoragePath() == null) {
             return Optional.empty();
         }
@@ -209,8 +212,17 @@ public class CommunityPostService {
         fileStorageService.delete(post.getFileStoragePath());
     }
 
-    private CommunityPost getPost(Long id) {
-        return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    private CommunityPost getPost(BoardType boardType, Long id) {
+        CommunityPost post = repository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        BoardType stored = post.getBoardType();
+        if (stored == null && boardType == BoardType.COMMUNITY) {
+            return post;
+        }
+        if (stored != boardType) {
+            throw new IllegalArgumentException("Post not found");
+        }
+        return post;
     }
 
     private CommunityResponse toResponse(CommunityPost post) {

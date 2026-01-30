@@ -4,6 +4,7 @@ import com.senawiki.auth.domain.RefreshToken;
 import com.senawiki.auth.domain.RefreshTokenRepository;
 import com.senawiki.auth.dto.AuthResponse;
 import com.senawiki.auth.dto.LoginRequest;
+import com.senawiki.auth.dto.LogoutRequest;
 import com.senawiki.auth.dto.RefreshRequest;
 import com.senawiki.auth.dto.RegisterRequest;
 import com.senawiki.auth.dto.UserResponse;
@@ -95,6 +96,11 @@ public class AuthService {
         refreshTokenRepository.delete(storedToken);
 
         return issueTokens(user);
+    }
+
+    public void logout(LogoutRequest request) {
+        refreshTokenRepository.findByToken(request.getRefreshToken())
+            .ifPresent(refreshTokenRepository::delete);
     }
 
     private AuthResponse issueTokens(User user) {

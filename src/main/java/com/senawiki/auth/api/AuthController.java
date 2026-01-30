@@ -4,6 +4,7 @@ import com.senawiki.auth.dto.AuthResponse;
 import com.senawiki.auth.dto.EmailSendRequest;
 import com.senawiki.auth.dto.EmailVerifyRequest;
 import com.senawiki.auth.dto.LoginRequest;
+import com.senawiki.auth.dto.LogoutRequest;
 import com.senawiki.auth.dto.RefreshRequest;
 import com.senawiki.auth.dto.RegisterRequest;
 import com.senawiki.auth.service.AuthService;
@@ -52,5 +53,11 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         return ResponseEntity.ok(authService.refresh(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request);
+        return ResponseEntity.ok().build();
     }
 }

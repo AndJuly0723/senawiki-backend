@@ -8,7 +8,6 @@ import com.senawiki.community.domain.BoardType;
 import com.senawiki.community.service.CommunityPostService;
 import com.senawiki.community.service.FileDownload;
 import java.util.Optional;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -28,17 +27,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/community")
-public class CommunityPostController {
+@RequestMapping("/api/tip")
+public class TipPostController {
 
     private final CommunityPostService service;
-    public CommunityPostController(CommunityPostService service) {
+
+    public TipPostController(CommunityPostService service) {
         this.service = service;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public CommunityResponse createJson(@Validated @RequestBody CommunityCreateRequest request) {
-        return service.create(BoardType.COMMUNITY, request, null);
+        return service.create(BoardType.TIP, request, null);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -46,22 +46,22 @@ public class CommunityPostController {
         @Validated @RequestPart("request") CommunityCreateRequest request,
         @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        return service.create(BoardType.COMMUNITY, request, file);
+        return service.create(BoardType.TIP, request, file);
     }
 
     @GetMapping("/{id}")
     public CommunityResponse get(@PathVariable Long id) {
-        return service.get(BoardType.COMMUNITY, id);
+        return service.get(BoardType.TIP, id);
     }
 
     @PostMapping("/{id}/view")
     public CommunityResponse incrementView(@PathVariable Long id) {
-        return service.incrementView(BoardType.COMMUNITY, id);
+        return service.incrementView(BoardType.TIP, id);
     }
 
     @GetMapping
     public Page<CommunitySummaryResponse> list(Pageable pageable) {
-        return service.list(BoardType.COMMUNITY, pageable);
+        return service.list(BoardType.TIP, pageable);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -69,7 +69,7 @@ public class CommunityPostController {
         @PathVariable Long id,
         @Validated @RequestBody CommunityUpdateRequest request
     ) {
-        return service.update(BoardType.COMMUNITY, id, request, null);
+        return service.update(BoardType.TIP, id, request, null);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -78,7 +78,7 @@ public class CommunityPostController {
         @Validated @RequestPart("request") CommunityUpdateRequest request,
         @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        return service.update(BoardType.COMMUNITY, id, request, file);
+        return service.update(BoardType.TIP, id, request, file);
     }
 
     @DeleteMapping("/{id}")
@@ -87,12 +87,12 @@ public class CommunityPostController {
         @RequestParam(required = false) String guestName,
         @RequestParam(required = false) String guestPassword
     ) {
-        service.delete(BoardType.COMMUNITY, id, guestName, guestPassword);
+        service.delete(BoardType.TIP, id, guestName, guestPassword);
     }
 
     @GetMapping("/{id}/file")
     public ResponseEntity<Void> downloadFile(@PathVariable Long id) {
-        Optional<FileDownload> download = service.loadFile(BoardType.COMMUNITY, id);
+        Optional<FileDownload> download = service.loadFile(BoardType.TIP, id);
         if (download.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
