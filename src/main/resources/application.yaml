@@ -22,6 +22,8 @@ app:
     bucket: your-bucket-name
     region: ap-northeast-2
     prefix: community
+  hero-type-seed:
+    enabled: false
   ses:
     region: ap-northeast-2
     from: no-reply@example.com
