@@ -27,6 +27,12 @@ public class GuideDeck {
     @Column(nullable = false, length = 30)
     private GuideType guideType;
 
+    @Column(length = 50)
+    private String raidId;
+
+    @Column(length = 50)
+    private String stageId;
+
     @ManyToOne
     @JoinColumn(name = "author_user_id", nullable = false)
     private User authorUser;
@@ -69,6 +75,22 @@ public class GuideDeck {
 
     public void setGuideType(GuideType guideType) {
         this.guideType = guideType;
+    }
+
+    public String getRaidId() {
+        return raidId;
+    }
+
+    public void setRaidId(String raidId) {
+        this.raidId = raidId;
+    }
+
+    public String getStageId() {
+        return stageId;
+    }
+
+    public void setStageId(String stageId) {
+        this.stageId = stageId;
     }
 
     public User getAuthorUser() {

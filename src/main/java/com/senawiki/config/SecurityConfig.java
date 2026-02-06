@@ -38,10 +38,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/community/**").permitAll()
                 .requestMatchers("/api/tip/**").permitAll()
                 .requestMatchers("/api/boards/**").permitAll()
+                .requestMatchers("/error").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/guide-decks/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/guide-decks/*/equipment").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/deck_create").authenticated()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

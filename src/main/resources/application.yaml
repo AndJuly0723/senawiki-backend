@@ -37,3 +37,13 @@ app:
     password: "whflrhk0744@$"
     name: "Leo"
     nickname: "관리자"
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.senawiki.security: DEBUG
+
+server:
+  error:
+    include-message: always
+    include-binding-errors: always

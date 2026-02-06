@@ -5,9 +5,15 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -17,6 +23,8 @@ import java.util.List;
 
 @Component
 public class JwtTokenProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
     private final Key key;
     private final long accessTokenValiditySeconds;
@@ -44,7 +52,20 @@ public class JwtTokenProvider {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
+        } catch (ExpiredJwtException ex) {
+            log.debug("JWT expired: {}", ex.getMessage());
+            return false;
+        } catch (SignatureException ex) {
+            log.debug("JWT signature invalid: {}", ex.getMessage());
+            return false;
+        } catch (MalformedJwtException ex) {
+            log.debug("JWT malformed: {}", ex.getMessage());
+            return false;
+        } catch (UnsupportedJwtException ex) {
+            log.debug("JWT unsupported: {}", ex.getMessage());
+            return false;
         } catch (JwtException | IllegalArgumentException ex) {
+            log.debug("JWT invalid: {}", ex.getMessage());
             return false;
         }
     }
