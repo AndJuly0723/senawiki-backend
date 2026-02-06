@@ -9,4 +9,6 @@ public interface GuideDeckHeroEquipmentRepository extends JpaRepository<GuideDec
     Optional<GuideDeckHeroEquipment> findByTeamIdAndHeroId(Long teamId, String heroId);
 
     Optional<GuideDeckHeroEquipment> findByTeamIdInAndHeroId(List<Long> teamIds, String heroId);
+
+    void deleteByTeamIdIn(List<Long> teamIds);
 }

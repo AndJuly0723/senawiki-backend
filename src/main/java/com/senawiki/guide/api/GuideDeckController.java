@@ -8,6 +8,7 @@ import com.senawiki.guide.service.GuideDeckService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +30,11 @@ public class GuideDeckController {
     @PostMapping(value = "/deck_create", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Long create(@RequestBody GuideDeckCreateRequest request) {
         return service.create(request);
+    }
+
+    @DeleteMapping("/guide-decks/{deckId}")
+    public void delete(@PathVariable Long deckId) {
+        service.delete(deckId);
     }
 
     @GetMapping("/guide-decks")

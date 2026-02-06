@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/guide-decks/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/guide-decks/*/equipment").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/deck_create").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/guide-decks/*").authenticated()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )

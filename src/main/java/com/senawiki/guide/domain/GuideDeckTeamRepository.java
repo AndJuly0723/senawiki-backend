@@ -5,5 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface GuideDeckTeamRepository extends JpaRepository<GuideDeckTeam, Long> {
 
+    List<GuideDeckTeam> findByDeckId(Long deckId);
+
     List<GuideDeckTeam> findByDeckIdIn(List<Long> deckIds);
 }

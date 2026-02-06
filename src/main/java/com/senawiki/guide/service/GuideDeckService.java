@@ -92,63 +92,18 @@ public class GuideDeckService {
         deck.setStageId(request.getStageId());
 
         GuideDeck saved = deckRepository.save(deck);
-        int teamIndex = 0;
-        for (GuideDeckTeamCreateRequest teamRequest : teams) {
-            GuideDeckTeam team = new GuideDeckTeam();
-            team.setDeck(saved);
-            team.setTeamNo(resolveTeamNo(teamRequest, teamIndex));
-            team.setTeamSize(resolveTeamSize(teamRequest));
-            team.setFormationType(teamRequest.getFormationId());
-            GuideDeckTeam savedTeam = teamRepository.save(team);
-            teamIndex++;
-
-            if (teamRequest.getPetId() != null && !teamRequest.getPetId().isBlank()) {
-                GuideDeckSlot petSlot = new GuideDeckSlot();
-                petSlot.setTeam(savedTeam);
-                petSlot.setSlotNo(0);
-                petSlot.setPet(true);
-                petSlot.setPetName(teamRequest.getPetId());
-                petSlot.setHeroId(null);
-                slotRepository.save(petSlot);
-            }
-
-            if (teamRequest.getSlots() != null) {
-                for (GuideDeckSlotCreateRequest slotRequest : teamRequest.getSlots()) {
-                    GuideDeckSlot slot = new GuideDeckSlot();
-                    slot.setTeam(savedTeam);
-                    slot.setSlotNo(slotRequest.getPosition());
-                    slot.setPet(false);
-                    slot.setHeroId(slotRequest.getHeroId());
-                    slot.setPetName(null);
-                    slotRepository.save(slot);
-                }
-            }
-
-            List<GuideDeckSkillOrderCreateRequest> skillOrders = resolveSkillOrders(request, teamRequest);
-            if (skillOrders != null) {
-                for (GuideDeckSkillOrderCreateRequest skillRequest : skillOrders) {
-                    GuideDeckSkillOrder skillOrder = new GuideDeckSkillOrder();
-                    skillOrder.setTeam(savedTeam);
-                    skillOrder.setHeroId(skillRequest.getHeroId());
-                    skillOrder.setSkillSlot(skillRequest.getSkill());
-                    skillOrder.setOrderNo(skillRequest.getOrder());
-                    skillOrderRepository.save(skillOrder);
-                }
-            }
-
-            List<GuideDeckHeroEquipmentCreateRequest> equipments = resolveEquipments(request, teamRequest);
-            if (equipments != null) {
-                for (GuideDeckHeroEquipmentCreateRequest equipmentRequest : equipments) {
-                    GuideDeckHeroEquipment equipment = new GuideDeckHeroEquipment();
-                    equipment.setTeam(savedTeam);
-                    equipment.setHeroId(equipmentRequest.getHeroId());
-                    equipment.setEquipmentJson(toEquipmentJson(equipmentRequest));
-                    equipmentRepository.save(equipment);
-                }
-            }
-        }
+        persistTeams(saved, request, teams);
 
         return saved.getId();
+    }
+
+    public void delete(Long deckId) {
+        User user = requireUser();
+        GuideDeck deck = deckRepository.findById(deckId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deck not found"));
+        requireOwnerOrAdmin(user, deck);
+        deleteDeckChildren(deck.getId());
+        deckRepository.delete(deck);
     }
 
     @Transactional(readOnly = true)
@@ -444,6 +399,92 @@ public class GuideDeckService {
             return teamRequest.getHeroEquipments();
         }
         return request.getHeroEquipments();
+    }
+
+    private void persistTeams(
+        GuideDeck deck,
+        GuideDeckCreateRequest request,
+        List<GuideDeckTeamCreateRequest> teams
+    ) {
+        int teamIndex = 0;
+        for (GuideDeckTeamCreateRequest teamRequest : teams) {
+            GuideDeckTeam team = new GuideDeckTeam();
+            team.setDeck(deck);
+            team.setTeamNo(resolveTeamNo(teamRequest, teamIndex));
+            team.setTeamSize(resolveTeamSize(teamRequest));
+            team.setFormationType(teamRequest.getFormationId());
+            GuideDeckTeam savedTeam = teamRepository.save(team);
+            teamIndex++;
+
+            if (teamRequest.getPetId() != null && !teamRequest.getPetId().isBlank()) {
+                GuideDeckSlot petSlot = new GuideDeckSlot();
+                petSlot.setTeam(savedTeam);
+                petSlot.setSlotNo(0);
+                petSlot.setPet(true);
+                petSlot.setPetName(teamRequest.getPetId());
+                petSlot.setHeroId(null);
+                slotRepository.save(petSlot);
+            }
+
+            if (teamRequest.getSlots() != null) {
+                for (GuideDeckSlotCreateRequest slotRequest : teamRequest.getSlots()) {
+                    GuideDeckSlot slot = new GuideDeckSlot();
+                    slot.setTeam(savedTeam);
+                    slot.setSlotNo(slotRequest.getPosition());
+                    slot.setPet(false);
+                    slot.setHeroId(slotRequest.getHeroId());
+                    slot.setPetName(null);
+                    slotRepository.save(slot);
+                }
+            }
+
+            List<GuideDeckSkillOrderCreateRequest> skillOrders = resolveSkillOrders(request, teamRequest);
+            if (skillOrders != null) {
+                for (GuideDeckSkillOrderCreateRequest skillRequest : skillOrders) {
+                    GuideDeckSkillOrder skillOrder = new GuideDeckSkillOrder();
+                    skillOrder.setTeam(savedTeam);
+                    skillOrder.setHeroId(skillRequest.getHeroId());
+                    skillOrder.setSkillSlot(skillRequest.getSkill());
+                    skillOrder.setOrderNo(skillRequest.getOrder());
+                    skillOrderRepository.save(skillOrder);
+                }
+            }
+
+            List<GuideDeckHeroEquipmentCreateRequest> equipments = resolveEquipments(request, teamRequest);
+            if (equipments != null) {
+                for (GuideDeckHeroEquipmentCreateRequest equipmentRequest : equipments) {
+                    GuideDeckHeroEquipment equipment = new GuideDeckHeroEquipment();
+                    equipment.setTeam(savedTeam);
+                    equipment.setHeroId(equipmentRequest.getHeroId());
+                    equipment.setEquipmentJson(toEquipmentJson(equipmentRequest));
+                    equipmentRepository.save(equipment);
+                }
+            }
+        }
+    }
+
+    private void deleteDeckChildren(Long deckId) {
+        List<GuideDeckTeam> teams = teamRepository.findByDeckId(deckId);
+        if (teams.isEmpty()) {
+            return;
+        }
+        List<Long> teamIds = teams.stream()
+            .map(GuideDeckTeam::getId)
+            .toList();
+        equipmentRepository.deleteByTeamIdIn(teamIds);
+        skillOrderRepository.deleteByTeamIdIn(teamIds);
+        slotRepository.deleteByTeamIdIn(teamIds);
+        teamRepository.deleteAll(teams);
+    }
+
+    private void requireOwnerOrAdmin(User user, GuideDeck deck) {
+        if (user.getRole() == Role.ADMIN) {
+            return;
+        }
+        if (deck.getAuthorUser() != null && deck.getAuthorUser().getId().equals(user.getId())) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No permission to modify this deck");
     }
 
     private JsonNode toEquipmentJson(GuideDeckHeroEquipmentCreateRequest equipmentRequest) {
