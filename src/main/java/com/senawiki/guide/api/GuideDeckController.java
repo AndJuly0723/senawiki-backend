@@ -3,7 +3,10 @@ package com.senawiki.guide.api;
 import com.senawiki.guide.api.dto.GuideDeckCreateRequest;
 import com.senawiki.guide.api.dto.GuideDeckEquipmentResponse;
 import com.senawiki.guide.api.dto.GuideDeckSummaryResponse;
+import com.senawiki.guide.api.dto.GuideDeckVoteRequest;
+import com.senawiki.guide.api.dto.GuideDeckVoteResponse;
 import com.senawiki.guide.domain.GuideType;
+import com.senawiki.guide.domain.GuideDeckVoteType;
 import com.senawiki.guide.service.GuideDeckService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,5 +54,14 @@ public class GuideDeckController {
         @RequestParam String heroId
     ) {
         return service.getEquipment(deckId, heroId);
+    }
+
+    @PostMapping(value = "/guide-decks/{deckId}/votes", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public GuideDeckVoteResponse vote(
+        @PathVariable Long deckId,
+        @RequestBody GuideDeckVoteRequest request
+    ) {
+        GuideDeckVoteType voteType = request == null ? null : request.getVoteType();
+        return service.vote(deckId, voteType);
     }
 }

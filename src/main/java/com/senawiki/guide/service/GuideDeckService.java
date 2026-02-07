@@ -7,6 +7,7 @@ import com.senawiki.guide.api.dto.GuideDeckSkillOrderCreateRequest;
 import com.senawiki.guide.api.dto.GuideDeckSlotCreateRequest;
 import com.senawiki.guide.api.dto.GuideDeckSummaryResponse;
 import com.senawiki.guide.api.dto.GuideDeckTeamCreateRequest;
+import com.senawiki.guide.api.dto.GuideDeckVoteResponse;
 import com.senawiki.guide.domain.GuideAuthorRole;
 import com.senawiki.guide.domain.GuideDeck;
 import com.senawiki.guide.domain.GuideDeckHeroEquipment;
@@ -18,6 +19,9 @@ import com.senawiki.guide.domain.GuideDeckSlot;
 import com.senawiki.guide.domain.GuideDeckSlotRepository;
 import com.senawiki.guide.domain.GuideDeckTeam;
 import com.senawiki.guide.domain.GuideDeckTeamRepository;
+import com.senawiki.guide.domain.GuideDeckVote;
+import com.senawiki.guide.domain.GuideDeckVoteRepository;
+import com.senawiki.guide.domain.GuideDeckVoteType;
 import com.senawiki.guide.domain.GuideType;
 import com.senawiki.hero.domain.Hero;
 import com.senawiki.hero.domain.HeroRepository;
@@ -32,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -53,6 +58,7 @@ public class GuideDeckService {
     private final GuideDeckSlotRepository slotRepository;
     private final GuideDeckSkillOrderRepository skillOrderRepository;
     private final GuideDeckHeroEquipmentRepository equipmentRepository;
+    private final GuideDeckVoteRepository voteRepository;
     private final UserRepository userRepository;
     private final HeroRepository heroRepository;
     private final ObjectMapper objectMapper;
@@ -63,6 +69,7 @@ public class GuideDeckService {
         GuideDeckSlotRepository slotRepository,
         GuideDeckSkillOrderRepository skillOrderRepository,
         GuideDeckHeroEquipmentRepository equipmentRepository,
+        GuideDeckVoteRepository voteRepository,
         UserRepository userRepository,
         HeroRepository heroRepository,
         ObjectMapper objectMapper
@@ -72,6 +79,7 @@ public class GuideDeckService {
         this.slotRepository = slotRepository;
         this.skillOrderRepository = skillOrderRepository;
         this.equipmentRepository = equipmentRepository;
+        this.voteRepository = voteRepository;
         this.userRepository = userRepository;
         this.heroRepository = heroRepository;
         this.objectMapper = objectMapper;
@@ -531,6 +539,39 @@ public class GuideDeckService {
             mapped.add(slot);
         }
         response.setSlots(mapped);
+    }
+
+    public GuideDeckVoteResponse vote(Long deckId, GuideDeckVoteType voteType) {
+        User user = requireUser();
+        if (voteType == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vote type is required");
+        }
+        GuideDeck deck = deckRepository.findById(deckId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deck not found"));
+        if (voteRepository.existsByDeckIdAndUserId(deckId, user.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already voted for this deck");
+        }
+
+        GuideDeckVote vote = new GuideDeckVote();
+        vote.setDeck(deck);
+        vote.setUser(user);
+        vote.setVoteType(voteType);
+
+        try {
+            voteRepository.save(vote);
+            if (voteType == GuideDeckVoteType.UP) {
+                deckRepository.incrementUpVotes(deckId);
+            } else {
+                deckRepository.incrementDownVotes(deckId);
+            }
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already voted for this deck");
+        }
+
+        GuideDeckVoteResponse response = new GuideDeckVoteResponse();
+        response.setUpVotes(deck.getUpVotes() + (voteType == GuideDeckVoteType.UP ? 1 : 0));
+        response.setDownVotes(deck.getDownVotes() + (voteType == GuideDeckVoteType.DOWN ? 1 : 0));
+        return response;
     }
 
     private String asText(JsonNode node) {
