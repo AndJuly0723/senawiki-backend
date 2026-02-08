@@ -44,9 +44,10 @@ public class GuideDeckController {
     public Page<GuideDeckSummaryResponse> list(
         @RequestParam GuideType type,
         @RequestParam(required = false) String raidId,
+        @RequestParam(required = false) String stageId,
         Pageable pageable
     ) {
-        return service.list(type, raidId, pageable);
+        return service.list(type, raidId, stageId, pageable);
     }
 
     @GetMapping("/guide-decks/{deckId}/equipment")

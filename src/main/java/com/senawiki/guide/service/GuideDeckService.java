@@ -115,7 +115,12 @@ public class GuideDeckService {
     }
 
     @Transactional(readOnly = true)
-    public Page<GuideDeckSummaryResponse> list(GuideType guideType, String raidId, Pageable pageable) {
+    public Page<GuideDeckSummaryResponse> list(
+        GuideType guideType,
+        String raidId,
+        String stageId,
+        Pageable pageable
+    ) {
         Pageable sorted = PageRequest.of(
             pageable.getPageNumber(),
             pageable.getPageSize(),
@@ -124,6 +129,8 @@ public class GuideDeckService {
         Page<GuideDeck> decks;
         if (guideType == GuideType.RAID && raidId != null && !raidId.isBlank()) {
             decks = deckRepository.findAllByGuideTypeAndRaidId(guideType, raidId, sorted);
+        } else if (guideType == GuideType.GROWTH_DUNGEON && stageId != null && !stageId.isBlank()) {
+            decks = deckRepository.findAllByGuideTypeAndStageId(guideType, stageId, sorted);
         } else {
             decks = deckRepository.findAllByGuideType(guideType, sorted);
         }
