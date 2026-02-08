@@ -33,6 +33,9 @@ public class GuideDeck {
     @Column(length = 50)
     private String stageId;
 
+    @Column(length = 50)
+    private String expeditionId;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private SiegeDay siegeDay;
@@ -95,6 +98,14 @@ public class GuideDeck {
 
     public void setStageId(String stageId) {
         this.stageId = stageId;
+    }
+
+    public String getExpeditionId() {
+        return expeditionId;
+    }
+
+    public void setExpeditionId(String expeditionId) {
+        this.expeditionId = expeditionId;
     }
 
     public SiegeDay getSiegeDay() {

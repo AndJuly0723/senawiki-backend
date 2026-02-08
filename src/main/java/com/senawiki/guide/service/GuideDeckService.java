@@ -34,8 +34,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -53,6 +55,14 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class GuideDeckService {
+
+    private static final Set<String> EXPEDITION_IDS = Set.of(
+        "teo",
+        "kyle",
+        "yeonhee",
+        "karma",
+        "destroyer-god"
+    );
 
     private final GuideDeckRepository deckRepository;
     private final GuideDeckTeamRepository teamRepository;
@@ -90,6 +100,9 @@ public class GuideDeckService {
         User user = requireUser();
         List<GuideDeckTeamCreateRequest> teams = normalizeTeams(request);
         validateRequest(request, teams);
+        String expeditionId = request.getGuideType() == GuideType.EXPEDITION
+            ? validateExpeditionId(request.getExpeditionId())
+            : null;
 
         GuideDeck deck = new GuideDeck();
         deck.setGuideType(request.getGuideType());
@@ -99,6 +112,7 @@ public class GuideDeckService {
         deck.setDownVotes(0);
         deck.setRaidId(request.getRaidId());
         deck.setStageId(request.getStageId());
+        deck.setExpeditionId(expeditionId);
         deck.setSiegeDay(request.getSiegeDay());
 
         GuideDeck saved = deckRepository.save(deck);
@@ -121,6 +135,7 @@ public class GuideDeckService {
         GuideType guideType,
         String raidId,
         String stageId,
+        String expeditionId,
         SiegeDay siegeDay,
         Pageable pageable
     ) {
@@ -134,6 +149,9 @@ public class GuideDeckService {
             decks = deckRepository.findAllByGuideTypeAndRaidId(guideType, raidId, sorted);
         } else if (guideType == GuideType.GROWTH_DUNGEON && stageId != null && !stageId.isBlank()) {
             decks = deckRepository.findAllByGuideTypeAndStageId(guideType, stageId, sorted);
+        } else if (guideType == GuideType.EXPEDITION) {
+            String normalizedExpeditionId = validateExpeditionId(expeditionId);
+            decks = deckRepository.findAllByGuideTypeAndExpeditionId(guideType, normalizedExpeditionId, sorted);
         } else if (guideType == GuideType.SIEGE && siegeDay != null) {
             decks = deckRepository.findAllByGuideTypeAndSiegeDay(guideType, siegeDay, sorted);
         } else {
@@ -339,6 +357,9 @@ public class GuideDeckService {
     private void validateRequest(GuideDeckCreateRequest request, List<GuideDeckTeamCreateRequest> teams) {
         if (request == null || request.getGuideType() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Guide type is required");
+        }
+        if (request.getGuideType() == GuideType.EXPEDITION) {
+            validateExpeditionId(request.getExpeditionId());
         }
         if (request.getGuideType() == GuideType.SIEGE && request.getSiegeDay() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Siege day is required");
@@ -599,5 +620,16 @@ public class GuideDeckService {
             return null;
         }
         return node.asText();
+    }
+
+    private String validateExpeditionId(String expeditionId) {
+        if (expeditionId == null || expeditionId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expedition id is required");
+        }
+        String normalized = expeditionId.trim().toLowerCase(Locale.ROOT);
+        if (!EXPEDITION_IDS.contains(normalized)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid expedition id");
+        }
+        return normalized;
     }
 }

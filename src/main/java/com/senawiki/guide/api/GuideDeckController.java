@@ -36,6 +36,11 @@ public class GuideDeckController {
         return service.create(request);
     }
 
+    @PostMapping(value = "/guide-decks", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Long createGuideDeck(@RequestBody GuideDeckCreateRequest request) {
+        return service.create(request);
+    }
+
     @DeleteMapping("/guide-decks/{deckId}")
     public void delete(@PathVariable Long deckId) {
         service.delete(deckId);
@@ -46,10 +51,11 @@ public class GuideDeckController {
         @RequestParam GuideType type,
         @RequestParam(required = false) String raidId,
         @RequestParam(required = false) String stageId,
+        @RequestParam(required = false) String expeditionId,
         @RequestParam(required = false) SiegeDay siegeDay,
         Pageable pageable
     ) {
-        return service.list(type, raidId, stageId, siegeDay, pageable);
+        return service.list(type, raidId, stageId, expeditionId, siegeDay, pageable);
     }
 
     @GetMapping("/guide-decks/{deckId}/equipment")

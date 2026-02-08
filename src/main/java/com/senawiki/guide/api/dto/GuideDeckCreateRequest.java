@@ -9,6 +9,7 @@ public class GuideDeckCreateRequest {
     private GuideType guideType;
     private String raidId;
     private String stageId;
+    private String expeditionId;
     private SiegeDay siegeDay;
     private GuideDeckTeamCreateRequest team;
     private List<GuideDeckTeamCreateRequest> teams;
@@ -37,6 +38,14 @@ public class GuideDeckCreateRequest {
 
     public void setStageId(String stageId) {
         this.stageId = stageId;
+    }
+
+    public String getExpeditionId() {
+        return expeditionId;
+    }
+
+    public void setExpeditionId(String expeditionId) {
+        this.expeditionId = expeditionId;
     }
 
     public SiegeDay getSiegeDay() {

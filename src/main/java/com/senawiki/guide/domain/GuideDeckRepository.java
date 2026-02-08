@@ -17,6 +17,8 @@ public interface GuideDeckRepository extends JpaRepository<GuideDeck, Long> {
 
     Page<GuideDeck> findAllByGuideTypeAndSiegeDay(GuideType guideType, SiegeDay siegeDay, Pageable pageable);
 
+    Page<GuideDeck> findAllByGuideTypeAndExpeditionId(GuideType guideType, String expeditionId, Pageable pageable);
+
     @Modifying
     @Query("update GuideDeck d set d.upVotes = d.upVotes + 1 where d.id = :deckId")
     int incrementUpVotes(@Param("deckId") Long deckId);
