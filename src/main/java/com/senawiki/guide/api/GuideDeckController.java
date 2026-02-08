@@ -6,6 +6,7 @@ import com.senawiki.guide.api.dto.GuideDeckSummaryResponse;
 import com.senawiki.guide.api.dto.GuideDeckVoteRequest;
 import com.senawiki.guide.api.dto.GuideDeckVoteResponse;
 import com.senawiki.guide.domain.GuideType;
+import com.senawiki.guide.domain.SiegeDay;
 import com.senawiki.guide.domain.GuideDeckVoteType;
 import com.senawiki.guide.service.GuideDeckService;
 import org.springframework.data.domain.Page;
@@ -45,9 +46,10 @@ public class GuideDeckController {
         @RequestParam GuideType type,
         @RequestParam(required = false) String raidId,
         @RequestParam(required = false) String stageId,
+        @RequestParam(required = false) SiegeDay siegeDay,
         Pageable pageable
     ) {
-        return service.list(type, raidId, stageId, pageable);
+        return service.list(type, raidId, stageId, siegeDay, pageable);
     }
 
     @GetMapping("/guide-decks/{deckId}/equipment")

@@ -23,6 +23,7 @@ import com.senawiki.guide.domain.GuideDeckVote;
 import com.senawiki.guide.domain.GuideDeckVoteRepository;
 import com.senawiki.guide.domain.GuideDeckVoteType;
 import com.senawiki.guide.domain.GuideType;
+import com.senawiki.guide.domain.SiegeDay;
 import com.senawiki.hero.domain.Hero;
 import com.senawiki.hero.domain.HeroRepository;
 import com.senawiki.user.domain.Role;
@@ -98,6 +99,7 @@ public class GuideDeckService {
         deck.setDownVotes(0);
         deck.setRaidId(request.getRaidId());
         deck.setStageId(request.getStageId());
+        deck.setSiegeDay(request.getSiegeDay());
 
         GuideDeck saved = deckRepository.save(deck);
         persistTeams(saved, request, teams);
@@ -119,6 +121,7 @@ public class GuideDeckService {
         GuideType guideType,
         String raidId,
         String stageId,
+        SiegeDay siegeDay,
         Pageable pageable
     ) {
         Pageable sorted = PageRequest.of(
@@ -131,6 +134,8 @@ public class GuideDeckService {
             decks = deckRepository.findAllByGuideTypeAndRaidId(guideType, raidId, sorted);
         } else if (guideType == GuideType.GROWTH_DUNGEON && stageId != null && !stageId.isBlank()) {
             decks = deckRepository.findAllByGuideTypeAndStageId(guideType, stageId, sorted);
+        } else if (guideType == GuideType.SIEGE && siegeDay != null) {
+            decks = deckRepository.findAllByGuideTypeAndSiegeDay(guideType, siegeDay, sorted);
         } else {
             decks = deckRepository.findAllByGuideType(guideType, sorted);
         }
@@ -334,6 +339,9 @@ public class GuideDeckService {
     private void validateRequest(GuideDeckCreateRequest request, List<GuideDeckTeamCreateRequest> teams) {
         if (request == null || request.getGuideType() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Guide type is required");
+        }
+        if (request.getGuideType() == GuideType.SIEGE && request.getSiegeDay() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Siege day is required");
         }
         if (teams.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Teams are required");

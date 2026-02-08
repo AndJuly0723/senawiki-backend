@@ -1,6 +1,7 @@
 package com.senawiki.guide.api.dto;
 
 import com.senawiki.guide.domain.GuideType;
+import com.senawiki.guide.domain.SiegeDay;
 import java.util.List;
 
 public class GuideDeckCreateRequest {
@@ -8,6 +9,7 @@ public class GuideDeckCreateRequest {
     private GuideType guideType;
     private String raidId;
     private String stageId;
+    private SiegeDay siegeDay;
     private GuideDeckTeamCreateRequest team;
     private List<GuideDeckTeamCreateRequest> teams;
     private List<GuideDeckSkillOrderCreateRequest> skillOrders;
@@ -35,6 +37,14 @@ public class GuideDeckCreateRequest {
 
     public void setStageId(String stageId) {
         this.stageId = stageId;
+    }
+
+    public SiegeDay getSiegeDay() {
+        return siegeDay;
+    }
+
+    public void setSiegeDay(SiegeDay siegeDay) {
+        this.siegeDay = siegeDay;
     }
 
     public GuideDeckTeamCreateRequest getTeam() {

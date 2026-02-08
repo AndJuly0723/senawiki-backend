@@ -33,6 +33,10 @@ public class GuideDeck {
     @Column(length = 50)
     private String stageId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private SiegeDay siegeDay;
+
     @ManyToOne
     @JoinColumn(name = "author_user_id", nullable = false)
     private User authorUser;
@@ -91,6 +95,14 @@ public class GuideDeck {
 
     public void setStageId(String stageId) {
         this.stageId = stageId;
+    }
+
+    public SiegeDay getSiegeDay() {
+        return siegeDay;
+    }
+
+    public void setSiegeDay(SiegeDay siegeDay) {
+        this.siegeDay = siegeDay;
     }
 
     public User getAuthorUser() {
