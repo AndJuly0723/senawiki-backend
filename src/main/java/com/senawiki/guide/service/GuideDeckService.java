@@ -115,13 +115,18 @@ public class GuideDeckService {
     }
 
     @Transactional(readOnly = true)
-    public Page<GuideDeckSummaryResponse> list(GuideType guideType, Pageable pageable) {
+    public Page<GuideDeckSummaryResponse> list(GuideType guideType, String raidId, Pageable pageable) {
         Pageable sorted = PageRequest.of(
             pageable.getPageNumber(),
             pageable.getPageSize(),
             Sort.by(Sort.Order.desc("createdAt"))
         );
-        Page<GuideDeck> decks = deckRepository.findAllByGuideType(guideType, sorted);
+        Page<GuideDeck> decks;
+        if (guideType == GuideType.RAID && raidId != null && !raidId.isBlank()) {
+            decks = deckRepository.findAllByGuideTypeAndRaidId(guideType, raidId, sorted);
+        } else {
+            decks = deckRepository.findAllByGuideType(guideType, sorted);
+        }
         List<Long> deckIds = decks.getContent().stream()
             .map(GuideDeck::getId)
             .toList();
