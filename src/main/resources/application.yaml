@@ -19,9 +19,12 @@ spring:
 
 app:
   s3:
-    bucket: your-bucket-name
+    bucket: senawiki-assets
     region: ap-northeast-2
     prefix: community
+  assets:
+    bucket: senawiki-assets
+    region: ap-northeast-2
   hero-type-seed:
     enabled: false
   ses:

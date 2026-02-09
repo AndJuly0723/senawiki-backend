@@ -1,68 +1,22 @@
-package com.senawiki.hero.domain;
+package com.senawiki.hero.api.dto;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import java.util.List;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
-@Entity
-@Table(name = "heroes")
-public class Hero {
+public class HeroResponse {
 
-    @Id
-    @Column(length = 50)
     private String id;
-
-    @Column(nullable = false, length = 100)
     private String name;
-
-    @Column(length = 200)
+    private String type;
+    private String grade;
     private String nickname;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<String> usage;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<String> gear;
-
-    @Column(name = "image_key", length = 300)
-    private String imageKey;
-
-    @Column(name = "basic_skill_image", length = 300)
-    private String basicSkillImage;
-
-    @Column(name = "skill1_image", length = 300)
-    private String skill1Image;
-
-    @Column(name = "skill2_image", length = 300)
-    private String skill2Image;
-
-    @Column(name = "passive_skill_image", length = 300)
-    private String passiveSkillImage;
-
-    @Convert(converter = HeroTypeConverter.class)
-    @Column(nullable = false, length = 20)
-    private HeroType type;
-
-    @Column(name = "type_icon", length = 300)
-    private String typeIcon;
-
-    @Convert(converter = HeroGradeConverter.class)
-    @Column(nullable = false, length = 20)
-    private HeroGrade grade;
-
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
     private List<String> acquisition;
-
-    @Column(name = "has_skill2", nullable = false)
+    private List<String> usage;
+    private List<String> gear;
+    private String imageKey;
+    private String basicSkillImage;
+    private String skill1Image;
+    private String skill2Image;
+    private String passiveSkillImage;
     private boolean hasSkill2;
 
     public String getId() {
@@ -81,12 +35,36 @@ public class Hero {
         this.name = name;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getGrade() {
+        return grade;
+    }
+
+    public void setGrade(String grade) {
+        this.grade = grade;
+    }
+
     public String getNickname() {
         return nickname;
     }
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public List<String> getAcquisition() {
+        return acquisition;
+    }
+
+    public void setAcquisition(List<String> acquisition) {
+        this.acquisition = acquisition;
     }
 
     public List<String> getUsage() {
@@ -143,40 +121,6 @@ public class Hero {
 
     public void setPassiveSkillImage(String passiveSkillImage) {
         this.passiveSkillImage = passiveSkillImage;
-    }
-
-    public HeroType getType() {
-        return type;
-    }
-
-    public void setType(HeroType type) {
-        this.type = type;
-    }
-
-
-    public String getTypeIcon() {
-        return typeIcon;
-    }
-
-    public void setTypeIcon(String typeIcon) {
-        this.typeIcon = typeIcon;
-    }
-
-    public HeroGrade getGrade() {
-        return grade;
-    }
-
-    public void setGrade(HeroGrade grade) {
-        this.grade = grade;
-    }
-
-
-    public List<String> getAcquisition() {
-        return acquisition;
-    }
-
-    public void setAcquisition(List<String> acquisition) {
-        this.acquisition = acquisition;
     }
 
     public boolean isHasSkill2() {

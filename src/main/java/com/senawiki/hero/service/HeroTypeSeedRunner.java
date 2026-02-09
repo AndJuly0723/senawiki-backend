@@ -143,7 +143,6 @@ public class HeroTypeSeedRunner implements ApplicationRunner {
                 continue;
             }
             hero.setType(type);
-            hero.setTypeLabel(toLabel(type));
             heroRepository.save(hero);
             updated++;
         }

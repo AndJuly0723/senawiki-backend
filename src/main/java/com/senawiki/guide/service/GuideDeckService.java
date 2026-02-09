@@ -269,7 +269,7 @@ public class GuideDeckService {
             Hero hero = heroMap.get(slot.getHeroId());
             if (hero != null) {
                 summary.setHeroName(hero.getName());
-                summary.setHeroImage(hero.getImage());
+                summary.setHeroImage(hero.getImageKey());
             }
         }
         return summary;
