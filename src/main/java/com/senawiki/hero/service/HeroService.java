@@ -72,9 +72,10 @@ public class HeroService {
         }
         hero.setName(request.getName());
         hero.setType(parseType(request.getType()));
-        hero.setGrade(parseGrade(request.getGrade()));
+        HeroGrade grade = parseGrade(request.getGrade());
+        hero.setGrade(grade);
         hero.setNickname(normalizeOptional(request.getNickname()));
-        hero.setAcquisition(defaultList(request.getAcquisition()));
+        hero.setAcquisition(resolveAcquisition(request.getAcquisition(), grade));
         hero.setUsage(defaultList(request.getUsage()));
         hero.setGear(defaultList(request.getGear()));
         hero.setImageKey(request.getImageKey());
@@ -146,6 +147,24 @@ public class HeroService {
             return Collections.emptyList();
         }
         return values;
+    }
+
+    private List<String> resolveAcquisition(List<String> values, HeroGrade grade) {
+        if (values != null && !values.isEmpty()) {
+            return values;
+        }
+        return defaultAcquisition(grade);
+    }
+
+    private List<String> defaultAcquisition(HeroGrade grade) {
+        if (grade == null) {
+            return Collections.emptyList();
+        }
+        return switch (grade) {
+            case SENA -> List.of("영웅 합성", "무한의 탑", "교환 상점");
+            case LEGEND, SPECIAL, RARE -> List.of("영웅 소환", "영웅 합성", "조합");
+            default -> Collections.emptyList();
+        };
     }
 
     private String normalizeOptional(String value) {

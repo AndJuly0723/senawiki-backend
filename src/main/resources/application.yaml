@@ -2,9 +2,6 @@ spring:
   application:
     name: senawiki
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: cmwlwhfl219014@
   jpa:
     hibernate:
       ddl-auto: validate
@@ -29,23 +26,9 @@ app:
     enabled: false
   ses:
     region: ap-northeast-2
-    from: no-reply@example.com
   jwt:
-    secret: "/e4sXkv8mxrKyRv8QqvQd0SFDay0y0JQjR/QJ2iSMh0rx4uBXyQO2HGl2esymWqi"
     access-token-validity-seconds: 900
     refresh-token-validity-seconds: 604800
-  admin:
-    enabled: false
-    email: "admin@gmail.com"
-    password: "whflrhk0744@$"
-    name: "Leo"
-    nickname: "관리자"
-
-logging:
-  level:
-    org.springframework.security: DEBUG
-    com.senawiki.security: DEBUG
-
 server:
   error:
     include-message: always

@@ -121,6 +121,17 @@ public class GuideDeckService {
         return saved.getId();
     }
 
+    public Long update(Long deckId, GuideDeckCreateRequest request) {
+        User user = requireUser();
+        GuideDeck deck = deckRepository.findById(deckId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deck not found"));
+        requireOwnerOrAdmin(user, deck);
+
+        applyDeckUpdates(deck, request);
+        applyTeamUpdates(deck, request);
+        return deck.getId();
+    }
+
     public void delete(Long deckId) {
         User user = requireUser();
         GuideDeck deck = deckRepository.findById(deckId)
@@ -631,5 +642,218 @@ public class GuideDeckService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid expedition id");
         }
         return normalized;
+    }
+
+    private void applyDeckUpdates(GuideDeck deck, GuideDeckCreateRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request is required");
+        }
+        GuideType guideType = request.getGuideType() == null ? deck.getGuideType() : request.getGuideType();
+        if (request.getGuideType() != null) {
+            if (guideType == GuideType.EXPEDITION && (request.getExpeditionId() == null || request.getExpeditionId().isBlank())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expedition id is required");
+            }
+            if (guideType == GuideType.SIEGE && request.getSiegeDay() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Siege day is required");
+            }
+            deck.setGuideType(guideType);
+            if (guideType != GuideType.EXPEDITION) {
+                deck.setExpeditionId(null);
+            }
+            if (guideType != GuideType.SIEGE) {
+                deck.setSiegeDay(null);
+            }
+        }
+        if (request.getRaidId() != null) {
+            deck.setRaidId(request.getRaidId());
+        }
+        if (request.getStageId() != null) {
+            deck.setStageId(request.getStageId());
+        }
+        if (request.getExpeditionId() != null) {
+            if (guideType != GuideType.EXPEDITION) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expedition id is only for expedition guide");
+            }
+            deck.setExpeditionId(validateExpeditionId(request.getExpeditionId()));
+        }
+        if (request.getSiegeDay() != null) {
+            if (guideType != GuideType.SIEGE) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Siege day is only for siege guide");
+            }
+            deck.setSiegeDay(request.getSiegeDay());
+        }
+    }
+
+    private void applyTeamUpdates(GuideDeck deck, GuideDeckCreateRequest request) {
+        List<GuideDeckTeamCreateRequest> teams = normalizeTeams(request);
+        if (teams.isEmpty()) {
+            return;
+        }
+        boolean useRequestLevel = request.getTeam() != null
+            && (request.getTeams() == null || request.getTeams().isEmpty());
+        List<GuideDeckSkillOrderCreateRequest> requestSkillOrders = request.getSkillOrders();
+        List<GuideDeckHeroEquipmentCreateRequest> requestHeroEquipments = request.getHeroEquipments();
+        for (GuideDeckTeamCreateRequest teamRequest : teams) {
+            Integer teamNo = teamRequest.getTeamNo();
+            if (teamNo == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Team number is required for update");
+            }
+            GuideDeckTeam team = teamRepository.findByDeckIdAndTeamNo(deck.getId(), teamNo)
+                .orElseGet(() -> createTeam(deck, teamRequest, teamNo));
+            List<GuideDeckSkillOrderCreateRequest> skillOrders = teamRequest.getSkillOrders();
+            if ((skillOrders == null || skillOrders.isEmpty()) && useRequestLevel
+                && requestSkillOrders != null && !requestSkillOrders.isEmpty()) {
+                skillOrders = requestSkillOrders;
+            }
+            List<GuideDeckHeroEquipmentCreateRequest> heroEquipments = teamRequest.getHeroEquipments();
+            if ((heroEquipments == null || heroEquipments.isEmpty()) && useRequestLevel
+                && requestHeroEquipments != null && !requestHeroEquipments.isEmpty()) {
+                heroEquipments = requestHeroEquipments;
+            }
+            updateTeam(team, teamRequest, skillOrders, heroEquipments);
+        }
+    }
+
+    private GuideDeckTeam createTeam(GuideDeck deck, GuideDeckTeamCreateRequest teamRequest, Integer teamNo) {
+        Integer teamSize = resolveTeamSize(teamRequest);
+        if (teamSize != 3 && teamSize != 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team size");
+        }
+        if (teamRequest.getFormationId() == null || teamRequest.getFormationId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formation type is required");
+        }
+        GuideDeckTeam team = new GuideDeckTeam();
+        team.setDeck(deck);
+        team.setTeamNo(teamNo);
+        team.setTeamSize(teamSize);
+        team.setFormationType(teamRequest.getFormationId());
+        return teamRepository.save(team);
+    }
+
+    private void updateTeam(
+        GuideDeckTeam team,
+        GuideDeckTeamCreateRequest teamRequest,
+        List<GuideDeckSkillOrderCreateRequest> skillOrders,
+        List<GuideDeckHeroEquipmentCreateRequest> heroEquipments
+    ) {
+        if (teamRequest.getTeamSize() != null) {
+            Integer teamSize = teamRequest.getTeamSize();
+            if (teamSize != 3 && teamSize != 5) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid team size");
+            }
+            team.setTeamSize(teamSize);
+        }
+        if (teamRequest.getFormationId() != null && !teamRequest.getFormationId().isBlank()) {
+            team.setFormationType(teamRequest.getFormationId());
+        }
+        if (teamRequest.getPetId() != null) {
+            updatePetSlot(team, teamRequest.getPetId());
+        }
+        if (teamRequest.getSlots() != null) {
+            updateSlots(team, teamRequest.getSlots());
+        }
+        if (skillOrders != null && !skillOrders.isEmpty()) {
+            updateSkills(team, skillOrders);
+        }
+        if (heroEquipments != null && !heroEquipments.isEmpty()) {
+            updateEquipments(team, heroEquipments);
+        }
+    }
+
+    private void updatePetSlot(GuideDeckTeam team, String petId) {
+        Optional<GuideDeckSlot> existing = slotRepository.findByTeamIdAndSlotNoAndIsPet(
+            team.getId(),
+            0,
+            true
+        );
+        if (petId == null || petId.isBlank()) {
+            existing.ifPresent(slotRepository::delete);
+            return;
+        }
+        GuideDeckSlot slot = existing.orElseGet(GuideDeckSlot::new);
+        slot.setTeam(team);
+        slot.setSlotNo(0);
+        slot.setPet(true);
+        slot.setPetName(petId);
+        slot.setHeroId(null);
+        slotRepository.save(slot);
+    }
+
+    private void updateSlots(GuideDeckTeam team, List<GuideDeckSlotCreateRequest> slots) {
+        for (GuideDeckSlotCreateRequest slotRequest : slots) {
+            int position = slotRequest.getPosition();
+            if (position <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Slot position is required");
+            }
+            Optional<GuideDeckSlot> existing = slotRepository.findByTeamIdAndSlotNoAndIsPet(
+                team.getId(),
+                position,
+                false
+            );
+            if (slotRequest.getHeroId() == null || slotRequest.getHeroId().isBlank()) {
+                existing.ifPresent(slotRepository::delete);
+                continue;
+            }
+            GuideDeckSlot slot = existing.orElseGet(GuideDeckSlot::new);
+            slot.setTeam(team);
+            slot.setSlotNo(position);
+            slot.setPet(false);
+            slot.setHeroId(slotRequest.getHeroId());
+            slot.setPetName(null);
+            slotRepository.save(slot);
+        }
+    }
+
+    private void updateSkills(GuideDeckTeam team, List<GuideDeckSkillOrderCreateRequest> skills) {
+        for (GuideDeckSkillOrderCreateRequest skillRequest : skills) {
+            int order = skillRequest.getOrder();
+            if (order <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Skill order is required");
+            }
+            Optional<GuideDeckSkillOrder> existing = skillOrderRepository.findByTeamIdAndOrderNo(
+                team.getId(),
+                order
+            );
+            if (skillRequest.getHeroId() == null || skillRequest.getHeroId().isBlank()) {
+                existing.ifPresent(skillOrderRepository::delete);
+                continue;
+            }
+            int skillSlot = skillRequest.getSkill();
+            if (skillSlot != 1 && skillSlot != 2) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid skill slot");
+            }
+            GuideDeckSkillOrder skill = existing.orElseGet(GuideDeckSkillOrder::new);
+            skill.setTeam(team);
+            skill.setOrderNo(order);
+            skill.setHeroId(skillRequest.getHeroId());
+            skill.setSkillSlot(skillSlot);
+            skillOrderRepository.save(skill);
+        }
+    }
+
+    private void updateEquipments(GuideDeckTeam team, List<GuideDeckHeroEquipmentCreateRequest> equipments) {
+        for (GuideDeckHeroEquipmentCreateRequest equipmentRequest : equipments) {
+            if (equipmentRequest.getHeroId() == null || equipmentRequest.getHeroId().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Equipment hero is required");
+            }
+            if (equipmentRequest.getSlots() == null || equipmentRequest.getSlots().isEmpty()) {
+                continue;
+            }
+            Optional<GuideDeckHeroEquipment> existing = equipmentRepository.findByTeamIdAndHeroId(
+                team.getId(),
+                equipmentRequest.getHeroId()
+            );
+            if (equipmentRequest.getEquipmentSet() == null || equipmentRequest.getEquipmentSet().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Equipment set is required");
+            }
+            if (equipmentRequest.getRing() == null || equipmentRequest.getRing().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ring is required");
+            }
+            GuideDeckHeroEquipment equipment = existing.orElseGet(GuideDeckHeroEquipment::new);
+            equipment.setTeam(team);
+            equipment.setHeroId(equipmentRequest.getHeroId());
+            equipment.setEquipmentJson(toEquipmentJson(equipmentRequest));
+            equipmentRepository.save(equipment);
+        }
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 public interface CommunityPostRepository extends JpaRepository<CommunityPost, Long> {
     @Query("""
         select p
@@ -17,4 +19,10 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
         @Param("boardType") BoardType boardType,
         Pageable pageable
     );
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    long countByFileStoragePathIsNotNull();
+
+    long countByFileStoragePathIsNotNullAndCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }

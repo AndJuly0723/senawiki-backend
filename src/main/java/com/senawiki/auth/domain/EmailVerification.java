@@ -43,4 +43,7 @@ public class EmailVerification {
 
     @Column(nullable = false)
     private int dailySendCount;
+
+    @Column(nullable = false)
+    private int failedAttempts;
 }

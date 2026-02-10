@@ -25,6 +25,7 @@ import java.time.LocalDate;
 public class EmailVerificationService {
 
     private static final int DAILY_SEND_LIMIT = 3;
+    private static final int MAX_VERIFY_ATTEMPTS = 3;
     private static final Duration CODE_TTL = Duration.ofMinutes(5);
 
     private final EmailVerificationRepository repository;
@@ -74,6 +75,7 @@ public class EmailVerificationService {
         verification.setExpiresAt(Instant.now().plus(CODE_TTL));
         verification.setVerified(false);
         verification.setVerifiedAt(null);
+        verification.setFailedAttempts(0);
         repository.save(verification);
 
         sendEmail(email, code);
@@ -83,15 +85,21 @@ public class EmailVerificationService {
         EmailVerification verification = repository.findByEmail(email)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid code"));
 
+        if (verification.getFailedAttempts() >= MAX_VERIFY_ATTEMPTS) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Verification attempts exceeded");
+        }
         if (verification.getExpiresAt().isBefore(Instant.now())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Verification code expired");
         }
         if (!verification.getCode().equals(code)) {
+            verification.setFailedAttempts(verification.getFailedAttempts() + 1);
+            repository.save(verification);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid code");
         }
 
         verification.setVerified(true);
         verification.setVerifiedAt(Instant.now());
+        verification.setFailedAttempts(0);
         repository.save(verification);
     }
 

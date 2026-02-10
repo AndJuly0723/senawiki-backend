@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -39,6 +40,14 @@ public class GuideDeckController {
     @PostMapping(value = "/guide-decks", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Long createGuideDeck(@RequestBody GuideDeckCreateRequest request) {
         return service.create(request);
+    }
+
+    @PutMapping(value = "/guide-decks/{deckId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Long updateGuideDeck(
+        @PathVariable Long deckId,
+        @RequestBody GuideDeckCreateRequest request
+    ) {
+        return service.update(deckId, request);
     }
 
     @DeleteMapping("/guide-decks/{deckId}")

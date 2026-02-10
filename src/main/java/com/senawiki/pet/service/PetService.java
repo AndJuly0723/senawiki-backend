@@ -74,7 +74,7 @@ public class PetService {
         pet.setName(request.getName());
         pet.setGrade(parseGrade(request.getGrade()));
         pet.setNickname(normalizeOptional(request.getNickname()));
-        pet.setAcquisition(defaultList(request.getAcquisition()));
+        pet.setAcquisition(resolveAcquisition(request.getAcquisition()));
         pet.setImageKey(request.getImageKey());
         pet.setSkillImage(normalizeOptional(request.getSkillImage()));
 
@@ -150,6 +150,13 @@ public class PetService {
             return Collections.emptyList();
         }
         return values;
+    }
+
+    private List<String> resolveAcquisition(List<String> values) {
+        if (values != null && !values.isEmpty()) {
+            return values;
+        }
+        return List.of("소환", "합성");
     }
 
     private String normalizeOptional(String value) {
