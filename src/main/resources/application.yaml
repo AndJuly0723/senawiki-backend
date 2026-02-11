@@ -1,6 +1,8 @@
 spring:
   application:
     name: senawiki
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
   jpa:
     hibernate:

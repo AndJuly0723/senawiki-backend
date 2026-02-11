@@ -7,6 +7,7 @@ import com.senawiki.auth.dto.LoginRequest;
 import com.senawiki.auth.dto.LogoutRequest;
 import com.senawiki.auth.dto.RefreshRequest;
 import com.senawiki.auth.dto.RegisterRequest;
+import com.senawiki.auth.dto.WithdrawRequest;
 import com.senawiki.auth.service.AuthService;
 import com.senawiki.auth.service.EmailVerificationService;
 import jakarta.validation.Valid;
@@ -58,6 +59,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
         authService.logout(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/withdraw")
+    public ResponseEntity<Void> withdraw(@Valid @RequestBody WithdrawRequest request) {
+        authService.withdraw(request);
         return ResponseEntity.ok().build();
     }
 }

@@ -8,18 +8,32 @@ import com.senawiki.auth.dto.LogoutRequest;
 import com.senawiki.auth.dto.RefreshRequest;
 import com.senawiki.auth.dto.RegisterRequest;
 import com.senawiki.auth.dto.UserResponse;
+import com.senawiki.auth.dto.WithdrawRequest;
+import com.senawiki.guide.domain.GuideDeck;
+import com.senawiki.guide.domain.GuideDeckHeroEquipmentRepository;
+import com.senawiki.guide.domain.GuideDeckRepository;
+import com.senawiki.guide.domain.GuideDeckSkillOrderRepository;
+import com.senawiki.guide.domain.GuideDeckSlotRepository;
+import com.senawiki.guide.domain.GuideDeckTeam;
+import com.senawiki.guide.domain.GuideDeckTeamRepository;
+import com.senawiki.guide.domain.GuideDeckVote;
+import com.senawiki.guide.domain.GuideDeckVoteRepository;
+import com.senawiki.guide.domain.GuideDeckVoteType;
 import com.senawiki.security.JwtTokenProvider;
 import com.senawiki.user.domain.User;
 import com.senawiki.user.domain.UserRepository;
+import java.time.Instant;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.time.Instant;
 
 @Service
 @Transactional
@@ -31,6 +45,12 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailVerificationService emailVerificationService;
+    private final GuideDeckRepository guideDeckRepository;
+    private final GuideDeckTeamRepository guideDeckTeamRepository;
+    private final GuideDeckSlotRepository guideDeckSlotRepository;
+    private final GuideDeckSkillOrderRepository guideDeckSkillOrderRepository;
+    private final GuideDeckHeroEquipmentRepository guideDeckHeroEquipmentRepository;
+    private final GuideDeckVoteRepository guideDeckVoteRepository;
 
     public AuthService(
         UserRepository userRepository,
@@ -38,7 +58,13 @@ public class AuthService {
         PasswordEncoder passwordEncoder,
         AuthenticationManager authenticationManager,
         JwtTokenProvider jwtTokenProvider,
-        EmailVerificationService emailVerificationService
+        EmailVerificationService emailVerificationService,
+        GuideDeckRepository guideDeckRepository,
+        GuideDeckTeamRepository guideDeckTeamRepository,
+        GuideDeckSlotRepository guideDeckSlotRepository,
+        GuideDeckSkillOrderRepository guideDeckSkillOrderRepository,
+        GuideDeckHeroEquipmentRepository guideDeckHeroEquipmentRepository,
+        GuideDeckVoteRepository guideDeckVoteRepository
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -46,6 +72,12 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.emailVerificationService = emailVerificationService;
+        this.guideDeckRepository = guideDeckRepository;
+        this.guideDeckTeamRepository = guideDeckTeamRepository;
+        this.guideDeckSlotRepository = guideDeckSlotRepository;
+        this.guideDeckSkillOrderRepository = guideDeckSkillOrderRepository;
+        this.guideDeckHeroEquipmentRepository = guideDeckHeroEquipmentRepository;
+        this.guideDeckVoteRepository = guideDeckVoteRepository;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -69,11 +101,11 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
-        User user = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         return issueTokens(user);
     }
@@ -103,6 +135,17 @@ public class AuthService {
             .ifPresent(refreshTokenRepository::delete);
     }
 
+    public void withdraw(WithdrawRequest request) {
+        User user = requireUser();
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
+        refreshTokenRepository.deleteByUser(user);
+        deleteUserVotes(user.getId());
+        deleteUserGuideDecks(user.getId());
+        userRepository.delete(user);
+    }
+
     private AuthResponse issueTokens(User user) {
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         String refreshTokenValue = jwtTokenProvider.generateRefreshToken(user);
@@ -120,5 +163,55 @@ public class AuthService {
             jwtTokenProvider.getAccessTokenValiditySeconds(),
             new UserResponse(user)
         );
+    }
+
+    private User requireUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+    }
+
+    private void deleteUserVotes(Long userId) {
+        List<GuideDeckVote> votes = guideDeckVoteRepository.findByUserId(userId);
+        if (votes.isEmpty()) {
+            return;
+        }
+        for (GuideDeckVote vote : votes) {
+            Long deckId = vote.getDeck().getId();
+            if (vote.getVoteType() == GuideDeckVoteType.UP) {
+                guideDeckRepository.decrementUpVotes(deckId);
+            } else {
+                guideDeckRepository.decrementDownVotes(deckId);
+            }
+        }
+        guideDeckVoteRepository.deleteByUserId(userId);
+    }
+
+    private void deleteUserGuideDecks(Long userId) {
+        List<GuideDeck> decks = guideDeckRepository.findByAuthorUserId(userId);
+        if (decks.isEmpty()) {
+            return;
+        }
+        List<Long> deckIds = decks.stream()
+            .map(GuideDeck::getId)
+            .toList();
+        List<GuideDeckTeam> teams = guideDeckTeamRepository.findByDeckIdIn(deckIds);
+        if (!teams.isEmpty()) {
+            List<Long> teamIds = teams.stream()
+                .map(GuideDeckTeam::getId)
+                .toList();
+            guideDeckHeroEquipmentRepository.deleteByTeamIdIn(teamIds);
+            guideDeckSkillOrderRepository.deleteByTeamIdIn(teamIds);
+            guideDeckSlotRepository.deleteByTeamIdIn(teamIds);
+            guideDeckTeamRepository.deleteAll(teams);
+        }
+        guideDeckRepository.deleteAll(decks);
     }
 }
