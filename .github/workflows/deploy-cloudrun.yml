@@ -31,18 +31,21 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure docker auth
-        run: gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+      - name: Configure docker auth for Artifact Registry
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
       - name: Build image
         run: |
-          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:${{ github.sha }} .
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} .
 
       - name: Push image
         run: |
-          docker push $REGION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:${{ github.sha }}
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy $SERVICE \
-            --image $REGION-docker.pkg.dev/$PROJECT_ID/$G_
+          gcloud run deploy ${SERVICE} \
+            --image ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} \
+            --region ${REGION} \
+            --platform managed \
+            --allow-unauthenticated
