@@ -7,16 +7,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       id-token: write
 
     env:
-      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       REGION: ${{ vars.GCP_REGION }}
-      GAR_REPO: ${{ secrets.GAR_REPO }}
-      SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
-      IMAGE_NAME: senawiki-backend
+      GAR_REPO: ${{ vars.GAR_REPO }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+      IMAGE_NAME: ${{ vars.IMAGE_NAME }}
 
     steps:
       - name: Checkout
@@ -31,20 +32,17 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Debug (show region & files)
+      - name: Configure Docker
         run: |
-          echo "REGION=${REGION}"
-          pwd
-          ls -al
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-      - name: Configure docker auth for Artifact Registry
-        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+      - name: Build Image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} .
 
-      - name: Build image
-        run: docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} .
-
-      - name: Push image
-        run: docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }}
+      - name: Push Image
+        run: |
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
