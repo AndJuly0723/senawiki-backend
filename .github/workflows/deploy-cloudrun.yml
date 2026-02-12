@@ -13,7 +13,6 @@ jobs:
 
     env:
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
       REGION: ${{ vars.GCP_REGION }}
       GAR_REPO: ${{ secrets.GAR_REPO }}
       SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
@@ -32,19 +31,20 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Debug region
-        run: echo "REGION=${REGION}"
+      - name: Debug (show region & files)
+        run: |
+          echo "REGION=${REGION}"
+          pwd
+          ls -al
 
       - name: Configure docker auth for Artifact Registry
         run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
       - name: Build image
-        run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} .
+        run: docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} .
 
       - name: Push image
-        run: |
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }}
+        run: docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
