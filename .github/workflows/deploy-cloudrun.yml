@@ -11,13 +11,6 @@ jobs:
       contents: read
       id-token: write
 
-    env:
-      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      REGION: ${{ secrets.GCP_REGION }}
-      GAR_REPO: ${{ secrets.GAR_REPO }}
-      SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
-      IMAGE_NAME: senawiki-backend
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,21 +24,24 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Debug env
+        run: echo "REGION=${{ secrets.GCP_REGION }}"
+
       - name: Configure docker auth for Artifact Registry
-        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Build image
         run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} .
+          docker build -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPO }}/senawiki-backend:${{ github.sha }} .
 
       - name: Push image
         run: |
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }}
+          docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPO }}/senawiki-backend:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy ${SERVICE} \
-            --image ${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${{ github.sha }} \
-            --region ${REGION} \
+          gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE }} \
+            --image ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPO }}/senawiki-backend:${{ github.sha }} \
+            --region ${{ secrets.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated
