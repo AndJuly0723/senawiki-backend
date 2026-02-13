@@ -5,20 +5,19 @@ import com.senawiki.auth.domain.EmailVerificationRepository;
 import com.senawiki.user.domain.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
-import software.amazon.awssdk.services.ses.SesClient;
-import software.amazon.awssdk.services.ses.model.Body;
-import software.amazon.awssdk.services.ses.model.Content;
-import software.amazon.awssdk.services.ses.model.Destination;
-import software.amazon.awssdk.services.ses.model.Message;
-import software.amazon.awssdk.services.ses.model.SendEmailRequest;
 
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -30,20 +29,26 @@ public class EmailVerificationService {
 
     private final EmailVerificationRepository repository;
     private final UserRepository userRepository;
-    private final SesClient sesClient;
+    private final RestClient restClient;
+    private final String brevoApiKey;
     private final String fromAddress;
+    private final String fromName;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public EmailVerificationService(
         EmailVerificationRepository repository,
         UserRepository userRepository,
-        SesClient sesClient,
-        @Value("${app.ses.from}") String fromAddress
+        RestClient.Builder restClientBuilder,
+        @Value("${app.brevo.api-key}") String brevoApiKey,
+        @Value("${app.brevo.from}") String fromAddress,
+        @Value("${app.brevo.from-name:SenaWiki}") String fromName
     ) {
         this.repository = repository;
         this.userRepository = userRepository;
-        this.sesClient = sesClient;
+        this.restClient = restClientBuilder.baseUrl("https://api.brevo.com").build();
+        this.brevoApiKey = brevoApiKey;
         this.fromAddress = fromAddress;
+        this.fromName = fromName;
     }
 
     public void sendCode(String email) {
@@ -121,24 +126,41 @@ public class EmailVerificationService {
     }
 
     private void sendEmail(String to, String code) {
-        String subjectText = "SenaWiki 이메일 인증 코드";
-        String bodyText = "인증 코드는 다음과 같습니다: " + code + "\n5분 이내에 입력해주세요.";
+        String subjectText = "[SenaWiki] 이메일 인증 코드 안내";
+        String bodyText =
+            "안녕하세요, SenaWiki입니다.\n\n"
+                + "아래 인증 코드를 입력해주세요.\n"
+                + "인증 코드: " + code + "\n\n"
+                + "인증 코드는 5분 후 만료됩니다.";
 
-        Destination destination = Destination.builder()
-            .toAddresses(to)
-            .build();
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Brevo API key not configured");
+        }
+        if (fromAddress == null || fromAddress.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Brevo sender address not configured");
+        }
 
-        Message message = Message.builder()
-            .subject(Content.builder().data(subjectText).build())
-            .body(Body.builder().text(Content.builder().data(bodyText).build()).build())
-            .build();
+        Map<String, Object> payload = Map.of(
+            "sender", Map.of("email", fromAddress, "name", fromName),
+            "to", List.of(Map.of("email", to)),
+            "subject", subjectText,
+            "textContent", bodyText
+        );
 
-        SendEmailRequest request = SendEmailRequest.builder()
-            .source(fromAddress)
-            .destination(destination)
-            .message(message)
-            .build();
-
-        sesClient.sendEmail(request);
+        try {
+            restClient.post()
+                .uri("/v3/smtp/email")
+                .header("api-key", brevoApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(payload)
+                .retrieve()
+                .toBodilessEntity();
+        } catch (RestClientException ex) {
+            throw new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Failed to send verification email",
+                ex
+            );
+        }
     }
 }

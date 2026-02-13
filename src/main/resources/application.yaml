@@ -24,8 +24,10 @@ app:
     region: ap-northeast-2
   hero-type-seed:
     enabled: false
-  ses:
-    region: ap-northeast-2
+  brevo:
+    api-key: ${APP_BREVO_API_KEY:}
+    from: ${APP_BREVO_FROM:}
+    from-name: ${APP_BREVO_FROM_NAME:SenaWiki}
   jwt:
     access-token-validity-seconds: 900
     refresh-token-validity-seconds: 604800
