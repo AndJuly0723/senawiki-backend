@@ -7,6 +7,7 @@ import com.senawiki.community.api.dto.CommentUpdateRequest;
 import com.senawiki.community.domain.BoardType;
 import com.senawiki.community.service.CommunityCommentService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import java.util.List;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -57,7 +58,7 @@ public class BoardCommentController {
     }
 
     @DeleteMapping("/{commentId}")
-    public void delete(
+    public Map<String, Object> delete(
         @PathVariable BoardType boardType,
         @PathVariable Long postId,
         @PathVariable Long commentId,
@@ -68,5 +69,6 @@ public class BoardCommentController {
         String resolvedName = guestName != null ? guestName : (request != null ? request.getGuestName() : null);
         String resolvedPassword = guestPassword != null ? guestPassword : (request != null ? request.getGuestPassword() : null);
         service.delete(boardType, postId, commentId, resolvedName, resolvedPassword);
+        return Map.of("deleted", true, "commentId", commentId);
     }
 }
