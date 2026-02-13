@@ -3,12 +3,15 @@ package com.senawiki.auth.service;
 import com.senawiki.auth.domain.EmailVerification;
 import com.senawiki.auth.domain.EmailVerificationRepository;
 import com.senawiki.user.domain.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -22,6 +25,7 @@ import java.util.Map;
 @Service
 @Transactional
 public class EmailVerificationService {
+    private static final Logger log = LoggerFactory.getLogger(EmailVerificationService.class);
 
     private static final int DAILY_SEND_LIMIT = 3;
     private static final int MAX_VERIFY_ATTEMPTS = 3;
@@ -155,7 +159,19 @@ public class EmailVerificationService {
                 .body(payload)
                 .retrieve()
                 .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            log.error(
+                "Brevo email send failed. status={}, body={}",
+                ex.getStatusCode(),
+                ex.getResponseBodyAsString()
+            );
+            throw new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Failed to send verification email",
+                ex
+            );
         } catch (RestClientException ex) {
+            log.error("Brevo email send failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Failed to send verification email",
