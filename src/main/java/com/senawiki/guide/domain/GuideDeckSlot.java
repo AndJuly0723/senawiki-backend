@@ -30,8 +30,8 @@ public class GuideDeckSlot {
     @Column(nullable = false)
     private boolean isPet;
 
-    @Column(length = 100)
-    private String petName;
+    @Column(length = 50)
+    private String petId;
 
     public Long getId() {
         return id;
@@ -69,11 +69,11 @@ public class GuideDeckSlot {
         isPet = pet;
     }
 
-    public String getPetName() {
-        return petName;
+    public String getPetId() {
+        return petId;
     }
 
-    public void setPetName(String petName) {
-        this.petName = petName;
+    public void setPetId(String petId) {
+        this.petId = petId;
     }
 }

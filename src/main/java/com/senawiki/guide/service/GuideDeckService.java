@@ -251,7 +251,7 @@ public class GuideDeckService {
         List<GuideDeckSlot> slots = slotsByTeamId.getOrDefault(team.getId(), List.of());
         String petId = slots.stream()
             .filter(GuideDeckSlot::isPet)
-            .map(GuideDeckSlot::getPetName)
+            .map(GuideDeckSlot::getPetId)
             .findFirst()
             .orElse(null);
         summary.setPetId(petId);
@@ -274,7 +274,7 @@ public class GuideDeckService {
         GuideDeckSummaryResponse.SlotSummary summary = new GuideDeckSummaryResponse.SlotSummary();
         summary.setPosition(slot.getSlotNo());
         summary.setPet(slot.isPet());
-        summary.setPetName(slot.getPetName());
+        summary.setPetName(slot.getPetId());
         summary.setHeroId(slot.getHeroId());
         if (slot.getHeroId() != null) {
             Hero hero = heroMap.get(slot.getHeroId());
@@ -481,7 +481,7 @@ public class GuideDeckService {
                 petSlot.setTeam(savedTeam);
                 petSlot.setSlotNo(0);
                 petSlot.setPet(true);
-                petSlot.setPetName(teamRequest.getPetId());
+                petSlot.setPetId(teamRequest.getPetId());
                 petSlot.setHeroId(null);
                 slotRepository.save(petSlot);
             }
@@ -493,7 +493,7 @@ public class GuideDeckService {
                     slot.setSlotNo(slotRequest.getPosition());
                     slot.setPet(false);
                     slot.setHeroId(slotRequest.getHeroId());
-                    slot.setPetName(null);
+                    slot.setPetId(null);
                     slotRepository.save(slot);
                 }
             }
@@ -774,7 +774,7 @@ public class GuideDeckService {
         slot.setTeam(team);
         slot.setSlotNo(0);
         slot.setPet(true);
-        slot.setPetName(petId);
+        slot.setPetId(petId);
         slot.setHeroId(null);
         slotRepository.save(slot);
     }
@@ -799,7 +799,7 @@ public class GuideDeckService {
             slot.setSlotNo(position);
             slot.setPet(false);
             slot.setHeroId(slotRequest.getHeroId());
-            slot.setPetName(null);
+            slot.setPetId(null);
             slotRepository.save(slot);
         }
     }
