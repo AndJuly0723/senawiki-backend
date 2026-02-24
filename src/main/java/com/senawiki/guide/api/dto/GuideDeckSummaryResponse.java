@@ -13,6 +13,7 @@ public class GuideDeckSummaryResponse {
     private int upVotes;
     private int downVotes;
     private LocalDateTime createdAt;
+    private String detail;
     private Long counterParentDeckId;
     private boolean isCounterDeck;
     private List<TeamSummary> teams;
@@ -101,6 +102,14 @@ public class GuideDeckSummaryResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getDetail() {
+        return detail;
+    }
+
+    public void setDetail(String detail) {
+        this.detail = detail;
     }
 
     public Long getCounterParentDeckId() {

@@ -18,6 +18,7 @@
 
 Backend accepts all of the following:
 
+- `detail` (optional text, 비고/디테일)
 - `counterParentDeckId` (standard)
 - `parentDeckId`
 - `counterOfDeckId`
@@ -41,6 +42,7 @@ Backend accepts all of the following:
 ```json
 {
   "guideType": "GUILD_WAR",
+  "detail": "비고(디테일) 텍스트",
   "counterParentDeckId": 101,
   "isCounter": true,
   "teams": [
@@ -67,6 +69,10 @@ Backend accepts all of the following:
 - Counter keys **provided with `isCounter=false` or `counter=false`** and no parent id: clear counter link.
 - Counter keys **provided with `isCounter=true` or `counter=true`**: parent id required.
 - Same create-time validations apply (GUILD_WAR only, parent exists/type, conflict checks, self-parent block).
+- `detail` key:
+  - not provided => keep existing detail
+  - provided as `null` or blank string => clear detail
+  - provided as text => update detail
 
 ### Update request examples
 
@@ -112,6 +118,7 @@ Keep current link (no counter keys):
       "upVotes": 12,
       "downVotes": 1,
       "createdAt": "2026-02-24T21:00:00",
+      "detail": "상대 전열 강타 대응용",
       "counterParentDeckId": 101,
       "isCounterDeck": true,
       "teams": []

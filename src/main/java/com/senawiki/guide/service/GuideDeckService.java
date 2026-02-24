@@ -119,6 +119,7 @@ public class GuideDeckService {
         deck.setStageId(request.getStageId());
         deck.setExpeditionId(expeditionId);
         deck.setSiegeDay(request.getSiegeDay());
+        deck.setDetail(trimToNull(request.getDetail()));
         deck.setCounterParentDeck(counterParentDeck);
 
         GuideDeck saved = deckRepository.save(deck);
@@ -237,6 +238,7 @@ public class GuideDeckService {
         response.setUpVotes(deck.getUpVotes());
         response.setDownVotes(deck.getDownVotes());
         response.setCreatedAt(deck.getCreatedAt());
+        response.setDetail(deck.getDetail());
         Long counterParentDeckId = deck.getCounterParentDeck() == null ? null : deck.getCounterParentDeck().getId();
         response.setCounterParentDeckId(counterParentDeckId);
         response.setCounterDeck(counterParentDeckId != null);
@@ -645,6 +647,14 @@ public class GuideDeckService {
         return node.asText();
     }
 
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     private String validateExpeditionId(String expeditionId) {
         if (expeditionId == null || expeditionId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expedition id is required");
@@ -693,6 +703,9 @@ public class GuideDeckService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Siege day is only for siege guide");
             }
             deck.setSiegeDay(request.getSiegeDay());
+        }
+        if (request.isDetailProvided()) {
+            deck.setDetail(trimToNull(request.getDetail()));
         }
 
         if (request.hasCounterInput()) {

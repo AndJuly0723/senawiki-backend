@@ -40,6 +40,9 @@ public class GuideDeck {
     @Column(length = 10)
     private SiegeDay siegeDay;
 
+    @Column(columnDefinition = "text")
+    private String detail;
+
     @ManyToOne
     @JoinColumn(name = "counter_parent_deck_id")
     private GuideDeck counterParentDeck;
@@ -118,6 +121,14 @@ public class GuideDeck {
 
     public void setSiegeDay(SiegeDay siegeDay) {
         this.siegeDay = siegeDay;
+    }
+
+    public String getDetail() {
+        return detail;
+    }
+
+    public void setDetail(String detail) {
+        this.detail = detail;
     }
 
     public GuideDeck getCounterParentDeck() {

@@ -199,6 +199,38 @@ class GuideDeckServiceTest {
     }
 
     @Test
+    void update_keepsDetailWhenDetailFieldNotProvided() {
+        User user = mockAuthenticatedUser(10L);
+        GuideDeck deck = deck(11L, GuideType.GUILD_WAR);
+        deck.setAuthorUser(user);
+        deck.setDetail("기존 비고");
+        when(deckRepository.findById(11L)).thenReturn(Optional.of(deck));
+
+        GuideDeckCreateRequest request = new GuideDeckCreateRequest();
+        request.setRaidId("raid-1");
+
+        service.update(11L, request);
+
+        assertEquals("기존 비고", deck.getDetail());
+    }
+
+    @Test
+    void update_clearsDetailWhenProvidedAsBlank() {
+        User user = mockAuthenticatedUser(10L);
+        GuideDeck deck = deck(11L, GuideType.GUILD_WAR);
+        deck.setAuthorUser(user);
+        deck.setDetail("기존 비고");
+        when(deckRepository.findById(11L)).thenReturn(Optional.of(deck));
+
+        GuideDeckCreateRequest request = new GuideDeckCreateRequest();
+        request.setDetail("   ");
+
+        service.update(11L, request);
+
+        assertNull(deck.getDetail());
+    }
+
+    @Test
     void list_exposesCounterParentDeckIdAndIsCounterDeck() {
         GuideDeck parent = deck(1L, GuideType.GUILD_WAR);
         GuideDeck counter = deck(2L, GuideType.GUILD_WAR);
@@ -207,6 +239,7 @@ class GuideDeckServiceTest {
         counter.setAuthorUser(author);
         counter.setAuthorRole(GuideAuthorRole.MEMBER);
         counter.setCounterParentDeck(parent);
+        counter.setDetail("상대 탱커 강타 대응");
 
         Page<GuideDeck> page = new PageImpl<>(List.of(counter));
         when(deckRepository.findAllByGuideType(eq(GuideType.GUILD_WAR), any())).thenReturn(page);
@@ -227,6 +260,7 @@ class GuideDeckServiceTest {
         GuideDeckSummaryResponse item = response.getContent().get(0);
         assertEquals(1L, item.getCounterParentDeckId());
         assertTrue(item.isCounterDeck());
+        assertEquals("상대 탱커 강타 대응", item.getDetail());
     }
 
     @Test

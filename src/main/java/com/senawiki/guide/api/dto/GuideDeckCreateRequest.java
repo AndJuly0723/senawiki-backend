@@ -13,6 +13,7 @@ public class GuideDeckCreateRequest {
     private String stageId;
     private String expeditionId;
     private SiegeDay siegeDay;
+    private String detail;
     private Long counterParentDeckId;
     private Long parentDeckId;
     private Long counterOfDeckId;
@@ -32,6 +33,7 @@ public class GuideDeckCreateRequest {
     private boolean targetDeckIdProvided;
     private boolean isCounterProvided;
     private boolean counterProvided;
+    private boolean detailProvided;
 
     public Long getId() {
         return id;
@@ -87,6 +89,15 @@ public class GuideDeckCreateRequest {
 
     public void setSiegeDay(SiegeDay siegeDay) {
         this.siegeDay = siegeDay;
+    }
+
+    public String getDetail() {
+        return detail;
+    }
+
+    public void setDetail(String detail) {
+        this.detailProvided = true;
+        this.detail = detail;
     }
 
     public Long getCounterParentDeckId() {
@@ -220,5 +231,9 @@ public class GuideDeckCreateRequest {
 
     public boolean isCounterProvided() {
         return counterProvided;
+    }
+
+    public boolean isDetailProvided() {
+        return detailProvided;
     }
 }
