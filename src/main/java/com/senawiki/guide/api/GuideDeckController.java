@@ -62,9 +62,10 @@ public class GuideDeckController {
         @RequestParam(required = false) String stageId,
         @RequestParam(required = false) String expeditionId,
         @RequestParam(required = false) SiegeDay siegeDay,
+        @RequestParam(required = false) Long counterParentDeckId,
         Pageable pageable
     ) {
-        return service.list(type, raidId, stageId, expeditionId, siegeDay, pageable);
+        return service.list(type, raidId, stageId, expeditionId, siegeDay, counterParentDeckId, pageable);
     }
 
     @GetMapping("/guide-decks/{deckId}/equipment")

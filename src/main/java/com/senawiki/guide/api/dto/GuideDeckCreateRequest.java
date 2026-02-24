@@ -6,15 +6,48 @@ import java.util.List;
 
 public class GuideDeckCreateRequest {
 
+    private Long id;
+    private Long deckId;
     private GuideType guideType;
     private String raidId;
     private String stageId;
     private String expeditionId;
     private SiegeDay siegeDay;
+    private Long counterParentDeckId;
+    private Long parentDeckId;
+    private Long counterOfDeckId;
+    private Long sourceDeckId;
+    private Long targetDeckId;
+    private Boolean isCounter;
+    private Boolean counter;
     private GuideDeckTeamCreateRequest team;
     private List<GuideDeckTeamCreateRequest> teams;
     private List<GuideDeckSkillOrderCreateRequest> skillOrders;
     private List<GuideDeckHeroEquipmentCreateRequest> heroEquipments;
+
+    private boolean counterParentDeckIdProvided;
+    private boolean parentDeckIdProvided;
+    private boolean counterOfDeckIdProvided;
+    private boolean sourceDeckIdProvided;
+    private boolean targetDeckIdProvided;
+    private boolean isCounterProvided;
+    private boolean counterProvided;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getDeckId() {
+        return deckId;
+    }
+
+    public void setDeckId(Long deckId) {
+        this.deckId = deckId;
+    }
 
     public GuideType getGuideType() {
         return guideType;
@@ -56,6 +89,69 @@ public class GuideDeckCreateRequest {
         this.siegeDay = siegeDay;
     }
 
+    public Long getCounterParentDeckId() {
+        return counterParentDeckId;
+    }
+
+    public void setCounterParentDeckId(Long counterParentDeckId) {
+        this.counterParentDeckIdProvided = true;
+        this.counterParentDeckId = counterParentDeckId;
+    }
+
+    public Long getParentDeckId() {
+        return parentDeckId;
+    }
+
+    public void setParentDeckId(Long parentDeckId) {
+        this.parentDeckIdProvided = true;
+        this.parentDeckId = parentDeckId;
+    }
+
+    public Long getCounterOfDeckId() {
+        return counterOfDeckId;
+    }
+
+    public void setCounterOfDeckId(Long counterOfDeckId) {
+        this.counterOfDeckIdProvided = true;
+        this.counterOfDeckId = counterOfDeckId;
+    }
+
+    public Long getSourceDeckId() {
+        return sourceDeckId;
+    }
+
+    public void setSourceDeckId(Long sourceDeckId) {
+        this.sourceDeckIdProvided = true;
+        this.sourceDeckId = sourceDeckId;
+    }
+
+    public Long getTargetDeckId() {
+        return targetDeckId;
+    }
+
+    public void setTargetDeckId(Long targetDeckId) {
+        this.targetDeckIdProvided = true;
+        this.targetDeckId = targetDeckId;
+    }
+
+    public Boolean getIsCounter() {
+        return isCounter;
+    }
+
+    public void setIsCounter(Boolean counter) {
+        this.isCounterProvided = true;
+        isCounter = counter;
+    }
+
+    public Boolean getCounter() {
+        return counter;
+    }
+
+    public void setCounter(Boolean counter) {
+        this.counterProvided = true;
+        this.counter = counter;
+    }
+
     public GuideDeckTeamCreateRequest getTeam() {
         return team;
     }
@@ -86,5 +182,43 @@ public class GuideDeckCreateRequest {
 
     public void setHeroEquipments(List<GuideDeckHeroEquipmentCreateRequest> heroEquipments) {
         this.heroEquipments = heroEquipments;
+    }
+
+    public boolean hasCounterInput() {
+        return counterParentDeckIdProvided
+            || parentDeckIdProvided
+            || counterOfDeckIdProvided
+            || sourceDeckIdProvided
+            || targetDeckIdProvided
+            || isCounterProvided
+            || counterProvided;
+    }
+
+    public boolean isCounterParentDeckIdProvided() {
+        return counterParentDeckIdProvided;
+    }
+
+    public boolean isParentDeckIdProvided() {
+        return parentDeckIdProvided;
+    }
+
+    public boolean isCounterOfDeckIdProvided() {
+        return counterOfDeckIdProvided;
+    }
+
+    public boolean isSourceDeckIdProvided() {
+        return sourceDeckIdProvided;
+    }
+
+    public boolean isTargetDeckIdProvided() {
+        return targetDeckIdProvided;
+    }
+
+    public boolean isIsCounterProvided() {
+        return isCounterProvided;
+    }
+
+    public boolean isCounterProvided() {
+        return counterProvided;
     }
 }

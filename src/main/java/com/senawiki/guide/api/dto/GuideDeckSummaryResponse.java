@@ -13,6 +13,8 @@ public class GuideDeckSummaryResponse {
     private int upVotes;
     private int downVotes;
     private LocalDateTime createdAt;
+    private Long counterParentDeckId;
+    private boolean isCounterDeck;
     private List<TeamSummary> teams;
 
     public Long getId() {
@@ -99,6 +101,23 @@ public class GuideDeckSummaryResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getCounterParentDeckId() {
+        return counterParentDeckId;
+    }
+
+    public void setCounterParentDeckId(Long counterParentDeckId) {
+        this.counterParentDeckId = counterParentDeckId;
+    }
+
+    @JsonProperty("isCounterDeck")
+    public boolean isCounterDeck() {
+        return isCounterDeck;
+    }
+
+    public void setCounterDeck(boolean counterDeck) {
+        isCounterDeck = counterDeck;
     }
 
     public List<TeamSummary> getTeams() {

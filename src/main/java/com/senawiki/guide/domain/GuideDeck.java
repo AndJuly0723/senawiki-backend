@@ -41,6 +41,10 @@ public class GuideDeck {
     private SiegeDay siegeDay;
 
     @ManyToOne
+    @JoinColumn(name = "counter_parent_deck_id")
+    private GuideDeck counterParentDeck;
+
+    @ManyToOne
     @JoinColumn(name = "author_user_id", nullable = false)
     private User authorUser;
 
@@ -114,6 +118,14 @@ public class GuideDeck {
 
     public void setSiegeDay(SiegeDay siegeDay) {
         this.siegeDay = siegeDay;
+    }
+
+    public GuideDeck getCounterParentDeck() {
+        return counterParentDeck;
+    }
+
+    public void setCounterParentDeck(GuideDeck counterParentDeck) {
+        this.counterParentDeck = counterParentDeck;
     }
 
     public User getAuthorUser() {

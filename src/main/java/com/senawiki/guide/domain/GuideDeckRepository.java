@@ -21,6 +21,12 @@ public interface GuideDeckRepository extends JpaRepository<GuideDeck, Long> {
 
     Page<GuideDeck> findAllByGuideTypeAndExpeditionId(GuideType guideType, String expeditionId, Pageable pageable);
 
+    Page<GuideDeck> findAllByGuideTypeAndCounterParentDeckId(
+        GuideType guideType,
+        Long counterParentDeckId,
+        Pageable pageable
+    );
+
     List<GuideDeck> findByAuthorUserId(Long userId);
 
     @Modifying

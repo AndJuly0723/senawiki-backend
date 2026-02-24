@@ -32,6 +32,7 @@ import com.senawiki.user.domain.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -97,9 +98,13 @@ public class GuideDeckService {
     }
 
     public Long create(GuideDeckCreateRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request is required");
+        }
         User user = requireUser();
         List<GuideDeckTeamCreateRequest> teams = normalizeTeams(request);
         validateRequest(request, teams);
+        GuideDeck counterParentDeck = resolveCounterParentDeckForCreate(request);
         String expeditionId = request.getGuideType() == GuideType.EXPEDITION
             ? validateExpeditionId(request.getExpeditionId())
             : null;
@@ -114,6 +119,7 @@ public class GuideDeckService {
         deck.setStageId(request.getStageId());
         deck.setExpeditionId(expeditionId);
         deck.setSiegeDay(request.getSiegeDay());
+        deck.setCounterParentDeck(counterParentDeck);
 
         GuideDeck saved = deckRepository.save(deck);
         persistTeams(saved, request, teams);
@@ -148,6 +154,7 @@ public class GuideDeckService {
         String stageId,
         String expeditionId,
         SiegeDay siegeDay,
+        Long counterParentDeckId,
         Pageable pageable
     ) {
         Pageable sorted = PageRequest.of(
@@ -156,7 +163,9 @@ public class GuideDeckService {
             Sort.by(Sort.Order.desc("createdAt"))
         );
         Page<GuideDeck> decks;
-        if (guideType == GuideType.RAID && raidId != null && !raidId.isBlank()) {
+        if (counterParentDeckId != null) {
+            decks = deckRepository.findAllByGuideTypeAndCounterParentDeckId(guideType, counterParentDeckId, sorted);
+        } else if (guideType == GuideType.RAID && raidId != null && !raidId.isBlank()) {
             decks = deckRepository.findAllByGuideTypeAndRaidId(guideType, raidId, sorted);
         } else if (guideType == GuideType.GROWTH_DUNGEON && stageId != null && !stageId.isBlank()) {
             decks = deckRepository.findAllByGuideTypeAndStageId(guideType, stageId, sorted);
@@ -228,6 +237,9 @@ public class GuideDeckService {
         response.setUpVotes(deck.getUpVotes());
         response.setDownVotes(deck.getDownVotes());
         response.setCreatedAt(deck.getCreatedAt());
+        Long counterParentDeckId = deck.getCounterParentDeck() == null ? null : deck.getCounterParentDeck().getId();
+        response.setCounterParentDeckId(counterParentDeckId);
+        response.setCounterDeck(counterParentDeckId != null);
 
         List<GuideDeckTeam> teams = teamsByDeckId.getOrDefault(deck.getId(), List.of());
         response.setTeams(teams.stream()
@@ -682,6 +694,98 @@ public class GuideDeckService {
             }
             deck.setSiegeDay(request.getSiegeDay());
         }
+
+        if (request.hasCounterInput()) {
+            GuideDeck counterParentDeck = resolveCounterParentDeckForUpdate(deck.getId(), guideType, request);
+            deck.setCounterParentDeck(counterParentDeck);
+        } else if (guideType != GuideType.GUILD_WAR && deck.getCounterParentDeck() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter deck is only for guild war guide");
+        }
+    }
+
+    private GuideDeck resolveCounterParentDeckForCreate(GuideDeckCreateRequest request) {
+        Long parentId = resolveCounterParentDeckId(request);
+        if (parentId == null) {
+            return null;
+        }
+        Long requestDeckId = request.getDeckId() != null ? request.getDeckId() : request.getId();
+        if (requestDeckId != null && requestDeckId.equals(parentId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deck cannot be its own counter parent");
+        }
+        if (request.getGuideType() != GuideType.GUILD_WAR) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter deck is only for guild war guide");
+        }
+        return loadAndValidateCounterParent(parentId);
+    }
+
+    private GuideDeck resolveCounterParentDeckForUpdate(Long deckId, GuideType guideType, GuideDeckCreateRequest request) {
+        Long parentId = resolveCounterParentDeckId(request);
+        if (parentId == null) {
+            return null;
+        }
+        if (guideType != GuideType.GUILD_WAR) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter deck is only for guild war guide");
+        }
+        if (deckId.equals(parentId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deck cannot be its own counter parent");
+        }
+        return loadAndValidateCounterParent(parentId);
+    }
+
+    private Long resolveCounterParentDeckId(GuideDeckCreateRequest request) {
+        LinkedHashSet<Long> candidates = new LinkedHashSet<>();
+        if (request.isCounterParentDeckIdProvided() && request.getCounterParentDeckId() != null) {
+            candidates.add(request.getCounterParentDeckId());
+        }
+        if (request.isParentDeckIdProvided() && request.getParentDeckId() != null) {
+            candidates.add(request.getParentDeckId());
+        }
+        if (request.isCounterOfDeckIdProvided() && request.getCounterOfDeckId() != null) {
+            candidates.add(request.getCounterOfDeckId());
+        }
+        if (request.isSourceDeckIdProvided() && request.getSourceDeckId() != null) {
+            candidates.add(request.getSourceDeckId());
+        }
+        if (request.isTargetDeckIdProvided() && request.getTargetDeckId() != null) {
+            candidates.add(request.getTargetDeckId());
+        }
+
+        if (candidates.size() > 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter parent deck id fields conflict");
+        }
+
+        Boolean counterFlag = resolveCounterFlag(request);
+        if (counterFlag != null && !counterFlag && !candidates.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter flag conflicts with counter parent deck id");
+        }
+
+        if (!candidates.isEmpty()) {
+            return candidates.iterator().next();
+        }
+
+        if (Boolean.TRUE.equals(counterFlag)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter parent deck id is required");
+        }
+
+        return null;
+    }
+
+    private Boolean resolveCounterFlag(GuideDeckCreateRequest request) {
+        Boolean isCounter = request.isIsCounterProvided() ? request.getIsCounter() : null;
+        Boolean counter = request.isCounterProvided() ? request.getCounter() : null;
+        if (isCounter != null && counter != null && !isCounter.equals(counter)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter flag fields conflict");
+        }
+        return isCounter != null ? isCounter : counter;
+    }
+
+    private GuideDeck loadAndValidateCounterParent(Long counterParentDeckId) {
+        GuideDeck parentDeck = deckRepository.findById(counterParentDeckId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter parent deck not found"));
+        if (parentDeck.getGuideType() != GuideType.GUILD_WAR) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Counter parent must be a guild war deck");
+        }
+        return parentDeck;
     }
 
     private void applyTeamUpdates(GuideDeck deck, GuideDeckCreateRequest request) {
